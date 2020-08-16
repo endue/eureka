@@ -53,6 +53,9 @@ class AcceptorExecutor<ID, T> {
 
     private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
+    /**
+     * 保存待执行的任务
+     */
     private final BlockingQueue<TaskHolder<ID, T>> acceptorQueue = new LinkedBlockingQueue<>();
     private final BlockingDeque<TaskHolder<ID, T>> reprocessQueue = new LinkedBlockingDeque<>();
     private final Thread acceptorThread;
@@ -72,7 +75,7 @@ class AcceptorExecutor<ID, T> {
      * Metrics
      */
     @Monitor(name = METRIC_REPLICATION_PREFIX + "acceptedTasks", description = "Number of accepted tasks", type = DataSourceType.COUNTER)
-    volatile long acceptedTasks;
+    volatile long acceptedTasks;//接收到任务+1
 
     @Monitor(name = METRIC_REPLICATION_PREFIX + "replayedTasks", description = "Number of replayedTasks tasks", type = DataSourceType.COUNTER)
     volatile long replayedTasks;
@@ -89,11 +92,11 @@ class AcceptorExecutor<ID, T> {
     private final Timer batchSizeMetric;
 
     AcceptorExecutor(String id,
-                     int maxBufferSize,
-                     int maxBatchingSize,
-                     long maxBatchingDelay,
-                     long congestionRetryDelayMs,
-                     long networkFailureRetryMs) {
+                     int maxBufferSize,// 1000
+                     int maxBatchingSize,// 250
+                     long maxBatchingDelay,// 500
+                     long congestionRetryDelayMs,// 1000
+                     long networkFailureRetryMs) {// 100
         this.maxBufferSize = maxBufferSize;
         this.maxBatchingSize = maxBatchingSize;
         this.maxBatchingDelay = maxBatchingDelay;

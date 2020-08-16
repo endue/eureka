@@ -85,7 +85,7 @@ class InstanceInfoReplicator implements Runnable {
                             logger.debug("Canceling the latest scheduled update, it will be rescheduled at the end of on demand update");
                             latestPeriodic.cancel(false);
                         }
-    
+                        // InstanceInfoReplicator实现了Runnable接口，这里启动一个定时任务40s执行一次
                         InstanceInfoReplicator.this.run();
                     }
                 });
@@ -102,6 +102,7 @@ class InstanceInfoReplicator implements Runnable {
 
     public void run() {
         try {
+            // 判断服务是否发生状态变更，如果是则直接注册
             discoveryClient.refreshInstanceInfo();
 
             Long dirtyTimestamp = instanceInfo.isDirtyWithTime();
