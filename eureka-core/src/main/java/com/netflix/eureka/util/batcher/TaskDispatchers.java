@@ -33,19 +33,23 @@ public class TaskDispatchers {
     }
 
     public static <ID, T> TaskDispatcher<ID, T> createBatchingTaskDispatcher(String id,
-                                                                             int maxBufferSize,
-                                                                             int workloadSize,
-                                                                             int workerCount,
-                                                                             long maxBatchingDelay,
-                                                                             long congestionRetryDelayMs,
-                                                                             long networkFailureRetryMs,
-                                                                             TaskProcessor<T> taskProcessor) {
-        // 创建一个acceptorExecutor
+                                                                             int maxBufferSize,//10000
+                                                                             int workloadSize,// 250
+                                                                             int workerCount,// 20
+                                                                             long maxBatchingDelay,// 500
+                                                                             long congestionRetryDelayMs,// 1000
+                                                                             long networkFailureRetryMs,// 100
+                                                                             TaskProcessor<T> taskProcessor) {// ReplicationTaskProcessor
+        // 步骤一、创建接受任务的执行器，里面创建一个AcceptorRunner线程并启动
         final AcceptorExecutor<ID, T> acceptorExecutor = new AcceptorExecutor<>(
                 id, maxBufferSize, workloadSize, maxBatchingDelay, congestionRetryDelayMs, networkFailureRetryMs
         );
+        // 步骤二、创建执行任务的执行器
         final TaskExecutors<ID, T> taskExecutor = TaskExecutors.batchExecutors(id, workerCount, taskProcessor, acceptorExecutor);
+
         return new TaskDispatcher<ID, T>() {
+            // 将任务交给第一步创建的acceptorExecutor的属性BlockingQueue<TaskHolder<ID, T>> acceptorQueue中
+            // acceptorQueue是LinkedBlockingQueue
             @Override
             public void process(ID id, T task, long expiryTime) {
                 acceptorExecutor.process(id, task, expiryTime);

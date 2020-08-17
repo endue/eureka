@@ -69,9 +69,9 @@ class TaskExecutors<ID, T> {
     }
 
     static <ID, T> TaskExecutors<ID, T> batchExecutors(final String name,
-                                                       int workerCount,
-                                                       final TaskProcessor<T> processor,
-                                                       final AcceptorExecutor<ID, T> acceptorExecutor) {
+                                                       int workerCount,// 20
+                                                       final TaskProcessor<T> processor,// ReplicationTaskProcessor
+                                                       final AcceptorExecutor<ID, T> acceptorExecutor) { //AcceptorExecutor
         final AtomicBoolean isShutdown = new AtomicBoolean();
         final TaskExecutorMetrics metrics = new TaskExecutorMetrics(name);
         return new TaskExecutors<>(new WorkerRunnableFactory<ID, T>() {
@@ -171,7 +171,7 @@ class TaskExecutors<ID, T> {
         BatchWorkerRunnable(String workerName,
                             AtomicBoolean isShutdown,
                             TaskExecutorMetrics metrics,
-                            TaskProcessor<T> processor,
+                            TaskProcessor<T> processor,// ReplicationTaskProcessor
                             AcceptorExecutor<ID, T> acceptorExecutor) {
             super(workerName, isShutdown, metrics, processor, acceptorExecutor);
         }
@@ -180,16 +180,19 @@ class TaskExecutors<ID, T> {
         public void run() {
             try {
                 while (!isShutdown.get()) {
+                    // 从batchWorkQueue中取出一批任务
                     List<TaskHolder<ID, T>> holders = getWork();
                     metrics.registerExpiryTimes(holders);
-
+                    // 取出任务
                     List<T> tasks = getTasksOf(holders);
+                    // 批量执行
                     ProcessingResult result = processor.process(tasks);
                     switch (result) {
                         case Success:
                             break;
-                        case Congestion:
-                        case TransientError:
+                        case Congestion:// 网络拥堵
+                        case TransientError://执行失败
+                            // 执行失败或网络拥堵，记录到待执行队列中
                             taskDispatcher.reprocess(holders, result);
                             break;
                         case PermanentError:
@@ -206,9 +209,11 @@ class TaskExecutors<ID, T> {
         }
 
         private List<TaskHolder<ID, T>> getWork() throws InterruptedException {
+            // 获取batchWorkQueue
             BlockingQueue<List<TaskHolder<ID, T>>> workQueue = taskDispatcher.requestWorkItems();
             List<TaskHolder<ID, T>> result;
             do {
+                // 取出一批任务
                 result = workQueue.poll(1, TimeUnit.SECONDS);
             } while (!isShutdown.get() && result == null);
             return result;
@@ -237,6 +242,7 @@ class TaskExecutors<ID, T> {
         public void run() {
             try {
                 while (!isShutdown.get()) {
+                    // 从singleItemWorkQueue取出任务
                     BlockingQueue<TaskHolder<ID, T>> workQueue = taskDispatcher.requestWorkItem();
                     TaskHolder<ID, T> taskHolder;
                     while ((taskHolder = workQueue.poll(1, TimeUnit.SECONDS)) == null) {

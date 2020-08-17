@@ -100,24 +100,40 @@ public class PeerEurekaNode {
         this.maxProcessingDelayMs = config.getMaxTimeForReplication();
 
         String batcherName = getBatcherName();
+        // 创建复制任务处理器
         ReplicationTaskProcessor taskProcessor = new ReplicationTaskProcessor(targetHost, replicationClient);
+        // 创建批量任务转发器
         this.batchingDispatcher = TaskDispatchers.createBatchingTaskDispatcher(
                 batcherName,
+                // maxElementsInPeerReplicationPool默认 10000
                 config.getMaxElementsInPeerReplicationPool(),
+                // 250
                 batchSize,
+                // maxThreadsForPeerReplication默认 20
                 config.getMaxThreadsForPeerReplication(),
+                // 500
                 maxBatchingDelayMs,
+                // 1000
                 serverUnavailableSleepTimeMs,
+                // 100
                 retrySleepTimeMs,
+                // ReplicationTaskProcessor
                 taskProcessor
         );
+        // 创建单个任务转发器
         this.nonBatchingDispatcher = TaskDispatchers.createNonBatchingTaskDispatcher(
                 targetHost,
+                // maxElementsInPeerReplicationPool默认 10000
                 config.getMaxElementsInStatusReplicationPool(),
+                // maxThreadsForStatusReplication默认 1
                 config.getMaxThreadsForStatusReplication(),
+                // 500
                 maxBatchingDelayMs,
+                // 1000
                 serverUnavailableSleepTimeMs,
+                // 100
                 retrySleepTimeMs,
+                // ReplicationTaskProcessor
                 taskProcessor
         );
     }
@@ -172,7 +188,7 @@ public class PeerEurekaNode {
                         }
                     }
                 },
-                expiryTime
+                expiryTime // 30000ms
         );
     }
 

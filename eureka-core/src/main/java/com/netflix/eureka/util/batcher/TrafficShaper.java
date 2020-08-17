@@ -38,14 +38,18 @@ class TrafficShaper {
     private volatile long lastCongestionError;
     private volatile long lastNetworkFailure;
 
+    // congestionRetryDelayMs 1000
+    // networkFailureRetryMs 100
     TrafficShaper(long congestionRetryDelayMs, long networkFailureRetryMs) {
         this.congestionRetryDelayMs = Math.min(MAX_DELAY, congestionRetryDelayMs);
         this.networkFailureRetryMs = Math.min(MAX_DELAY, networkFailureRetryMs);
     }
 
     void registerFailure(ProcessingResult processingResult) {
+        // 网络拥堵，记录lastCongestionError为当前时间
         if (processingResult == ProcessingResult.Congestion) {
             lastCongestionError = System.currentTimeMillis();
+        // 失败，记录lastNetworkFailure为当前时间
         } else if (processingResult == ProcessingResult.TransientError) {
             lastNetworkFailure = System.currentTimeMillis();
         }
@@ -58,7 +62,9 @@ class TrafficShaper {
 
         long now = System.currentTimeMillis();
         if (lastCongestionError != -1) {
+            // 记录当前时间和上次网络拥堵的差值
             long congestionDelay = now - lastCongestionError;
+            // 这个if就是在上次网络拥堵的情况下，判断当前时间距离上次时间的差值然后还需要再等待多久
             if (congestionDelay >= 0 && congestionDelay < congestionRetryDelayMs) {
                 return congestionRetryDelayMs - congestionDelay;
             }
@@ -67,6 +73,7 @@ class TrafficShaper {
 
         if (lastNetworkFailure != -1) {
             long failureDelay = now - lastNetworkFailure;
+            // 参考lastCongestionError计算
             if (failureDelay >= 0 && failureDelay < networkFailureRetryMs) {
                 return networkFailureRetryMs - failureDelay;
             }

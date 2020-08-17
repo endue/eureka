@@ -99,6 +99,7 @@ public class PeerEurekaNodes {
             };
             taskExecutor.scheduleWithFixedDelay(
                     peersUpdateTask,
+                    // peerEurekaNodesUpdateIntervalMs默认10 * 60 * 1000
                     serverConfig.getPeerEurekaNodesUpdateIntervalMs(),
                     serverConfig.getPeerEurekaNodesUpdateIntervalMs(),
                     TimeUnit.MILLISECONDS
@@ -156,9 +157,10 @@ public class PeerEurekaNodes {
             logger.warn("The replica size seems to be empty. Check the route 53 DNS Registry");
             return;
         }
-
+        // 标记出当前需要关闭的节点
         Set<String> toShutdown = new HashSet<>(peerEurekaNodeUrls);
         toShutdown.removeAll(newPeerUrls);
+        // 标记出当前需要新增加的节点
         Set<String> toAdd = new HashSet<>(newPeerUrls);
         toAdd.removeAll(peerEurekaNodeUrls);
 

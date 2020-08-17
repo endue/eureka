@@ -119,6 +119,7 @@ public class InstanceResource {
         // Check if we need to sync based on dirty time stamp, the client
         // instance might have changed some value
         Response response = null;
+        // syncWhenTimestampDiffers默认为true
         if (lastDirtyTimestamp != null && serverConfig.shouldSyncWhenTimestampDiffers()) {
             response = this.validateDirtyTimestamp(Long.valueOf(lastDirtyTimestamp), isFromReplicaNode);
             // Store the overridden status since the validation found out the node that replicates wins
