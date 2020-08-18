@@ -216,12 +216,14 @@ public class EurekaBootStrap implements ServletContextListener {
         );
 
         EurekaServerContextHolder.initialize(serverContext);
-
+        // 初始化peerEurekaNode
+        // 初始化一二级缓存
+        // 启动定时任务更新expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold，15分钟一次
         serverContext.initialize();
         logger.info("Initialized server context");
 
         // Copy registry from neighboring eureka node
-        // 从其他服务抓取服务注册列表
+        // 从localRegionApps中获取其他服务的注册列表然后保存到本地
         int registryCount = registry.syncUp();
         // 启动服务自动摘除定时任务
         registry.openForTraffic(applicationInfoManager, registryCount);

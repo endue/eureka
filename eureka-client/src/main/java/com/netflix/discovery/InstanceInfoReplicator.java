@@ -59,6 +59,7 @@ class InstanceInfoReplicator implements Runnable {
         logger.info("InstanceInfoReplicator onDemand update allowed rate per min is {}", allowedRatePerMinute);
     }
 
+    // initialDelayMs默认40
     public void start(int initialDelayMs) {
         if (started.compareAndSet(false, true)) {
             instanceInfo.setIsDirty();  // for initial register
@@ -102,7 +103,7 @@ class InstanceInfoReplicator implements Runnable {
 
     public void run() {
         try {
-            // 判断服务是否发生状态变更，如果是则直接注册
+            // 判断服务实例是否发生变更，如果是则注册到eurekaServer
             discoveryClient.refreshInstanceInfo();
 
             Long dirtyTimestamp = instanceInfo.isDirtyWithTime();

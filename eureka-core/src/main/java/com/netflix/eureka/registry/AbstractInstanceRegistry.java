@@ -120,7 +120,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         this.recentRegisteredQueue = new CircularQueue<Pair<Long, String>>(1000);
 
         this.renewsLastMin = new MeasuredRate(1000 * 60 * 1);
-
+        // 定时清空recentlyChangedQueue里过期数据
         this.deltaRetentionTimer.schedule(getDeltaRetentionTask(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs());
@@ -1358,6 +1358,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 Iterator<RecentlyChangedItem> it = recentlyChangedQueue.iterator();
                 while (it.hasNext()) {
                     if (it.next().getLastUpdateTime() <
+                            // retentionTimeInMSInDeltaQueue默认3 * 60 * 1000
                             System.currentTimeMillis() - serverConfig.getRetentionTimeInMSInDeltaQueue()) {
                         it.remove();
                     } else {
