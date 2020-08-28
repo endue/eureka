@@ -216,10 +216,10 @@ public class EndpointUtils {
      */
     public static Map<String, List<String>> getServiceUrlsMapFromConfig(EurekaClientConfig clientConfig, String instanceZone, boolean preferSameZone) {
         Map<String, List<String>> orderedUrls = new LinkedHashMap<>();
-        // 获取当前服务的region，这里返回beijing，默认default
+        // 获取当前服务的region，这里返回shanghai，默认default
         String region = getRegion(clientConfig);
-        // 第一步解析eureka.region配置的值，返回beijing，默认us-east-1
-        // 第二步解析eureka.region.availabilityZones配置的值，返回tongzhou,haidian，默认defaultZone
+        // 第一步解析eureka.region配置的值，返回shanghai，默认us-east-1
+        // 第二步解析eureka.region.availabilityZones配置的值，返回sh-1,sh-2，默认defaultZone
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         // 如果availZones为空，则使用默认的default
         if (availZones == null || availZones.length == 0) {
@@ -229,9 +229,9 @@ public class EndpointUtils {
         logger.debug("The availability zone for the given region {} are {}", region, Arrays.toString(availZones));
         // 返回当前服务zone在所有region的所有zone中的下标，这里返回0
         int myZoneOffset = getZoneOffset(instanceZone, preferSameZone, availZones);
-        // 返回tongzhou
+        // 返回sh-1
         String zone = availZones[myZoneOffset];
-        // 返回http://localhost:8760/eureka,http://localhost:8761/eureka,http://localhost:8762/eureka
+        // 返回http://localhost:8760/eureka,http://localhost:8761/eureka
         List<String> serviceUrls = clientConfig.getEurekaServerServiceUrls(zone);
         // 对应zone保存到map中
         if (serviceUrls != null) {
