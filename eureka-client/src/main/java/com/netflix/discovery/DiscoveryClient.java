@@ -483,21 +483,26 @@ public class DiscoveryClient implements EurekaClient {
         };
         /**
          * server:
-         *   port: 8081
+         *   port: 8082
          * spring:
          *   application:
-         *     name: server-01
+         *     name: server-02
          * eureka:
          *   instance:
          *     hostname: localhost
+         * #  metadata-map:
+         * #    zone: bj-2
          *   client:
-         *     region: beijing # 默认us-east-1
+         *     region: shanghai # 默认us-east-1
          *     availability-zones:
-         *       beijing: tongzhou,haidian
+         *       beijing: bj-1,bj-2
+         *       shanghai: sh-1,sh-2
          *     service-url:
-         *       tongzhou: http://localhost:8760/eureka,http://localhost:8761/eureka,http://localhost:8762/eureka
-         *       haidian: http://111.223.333.444:8761/eureka,http://222.223.333.444:8761/eureka,http://333.223.333.444:8761/eureka
-         * --------------------------------------------------------------------------------------------------------------------------
+         *       bj-1: http://localhost:8760/eureka,http://localhost:8761/eureka
+         *       bj-2: http://localhost:8762/eureka,http://localhost:8763/eureka
+         *       sh-1: http://localhost:8764/eureka,http://localhost:8765/eureka
+         *       sh-2: http://localhost:8766/eureka,http://localhost:8767/eureka
+         *     prefer-same-zone-eureka: true
          * ##简单配置
          * #eureka:
          * #  client:
@@ -505,6 +510,7 @@ public class DiscoveryClient implements EurekaClient {
          * #      defaultZone: http://127.0.0.1:10086/eureka
          * #    register-with-eureka: false #不向注册中心注册自己
          * #    fetch-registry: false  #不向注册中心拉取服务列表
+         *
          */
         // 解析zone中的service-url
         // 并返回一个AsyncResolver，里面包含一个没5分钟执行一次的定时任务

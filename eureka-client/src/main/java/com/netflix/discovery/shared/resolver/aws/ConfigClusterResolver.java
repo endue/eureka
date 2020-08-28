@@ -74,7 +74,7 @@ public class ConfigClusterResolver implements ClusterResolver<AwsEndpoint> {
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         // 返回availZones数组中下标为0的zone为服务自己的zone，这里返回tongzhou，默认default
         String myZone = InstanceInfo.getZone(availZones, myInstanceInfo);
-        // clientConfig.shouldPreferSameZoneEureka()默认true，表示开始解析是否从自己的zone开始
+        // clientConfig.shouldPreferSameZoneEureka()默认true，表示是否返回相同的zone
         // key是zone名称，value是url地址
         Map<String, List<String>> serviceUrls = EndpointUtils
                 .getServiceUrlsMapFromConfig(clientConfig, myZone, clientConfig.shouldPreferSameZoneEureka());
