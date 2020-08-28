@@ -147,7 +147,7 @@ public class EurekaBootStrap implements ServletContextListener {
      * init hook for server context. Override for custom logic.
      */
     protected void initEurekaServerContext() throws Exception {
-        // 1 创建eurekaServer配置
+        // 1 创建eurekaServer默认配置
         EurekaServerConfig eurekaServerConfig = new DefaultEurekaServerConfig();
 
         // For backward compatibility
@@ -166,10 +166,11 @@ public class EurekaBootStrap implements ServletContextListener {
             EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
                     ? new CloudInstanceConfig()
                     : new MyDataCenterInstanceConfig();
-            
+            // 第一步创建实例instanceInfo
+            // 第二步根据实例和配置文件创建applicationInfoManager
             applicationInfoManager = new ApplicationInfoManager(
                     instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
-            
+            // 创建eurekaClient默认配置
             EurekaClientConfig eurekaClientConfig = new DefaultEurekaClientConfig();
             // 【重点】初始化
             eurekaClient = new DiscoveryClient(applicationInfoManager, eurekaClientConfig);

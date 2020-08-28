@@ -308,8 +308,9 @@ public class DiscoveryClient implements EurekaClient {
             this.healthCheckHandlerProvider = null;
             this.preRegistrationHandler = null;
         }
-        // 获取服务实例
+        // 获取当前服务实例管理器
         this.applicationInfoManager = applicationInfoManager;
+        // 获取服务实例
         InstanceInfo myInfo = applicationInfoManager.getInfo();
 
         clientConfig = config;
@@ -410,7 +411,7 @@ public class DiscoveryClient implements EurekaClient {
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize DiscoveryClient!", e);
         }
-        // 抓取某个eurekaServer服务注册列表,保存到localRegionApps中，用的是queryClient
+        // 基于queryClient去抓取某个eurekaServer服务注册列表,保存到localRegionApps
         if (clientConfig.shouldFetchRegistry() && !fetchRegistry(false)) {
             fetchRegistryFromBackup();
         }
@@ -419,7 +420,7 @@ public class DiscoveryClient implements EurekaClient {
         if (this.preRegistrationHandler != null) {
             this.preRegistrationHandler.beforeRegistration();
         }
-        // 启动定时任务并注册自己到eurekaServer，用的是registrationClient
+        // 基于registrationClient，启动定时任务并注册自己到eurekaServer
         initScheduledTasks();
 
         try {
@@ -1482,13 +1483,18 @@ public class DiscoveryClient implements EurekaClient {
     @VisibleForTesting
     void refreshRegistry() {
         try {
+            // 1486--1515需配置dataCenter为Amazon，可跳过
+            // 判断remoteRegionsToFetch中值是否为null
             boolean isFetchingRemoteRegionRegistries = isFetchingRemoteRegionRegistries();
 
             boolean remoteRegionsModified = false;
             // This makes sure that a dynamic change to remote regions to fetch is honored.
+            // 获取eureka.fetchRemoteRegionsRegistry 配置的值，默认null
             String latestRemoteRegions = clientConfig.fetchRegistryForRemoteRegions();
             if (null != latestRemoteRegions) {
+                // 获取当前保存的eureka.fetchRemoteRegionsRegistry的值
                 String currentRemoteRegions = remoteRegionsToFetch.get();
+                // 如果不相等
                 if (!latestRemoteRegions.equals(currentRemoteRegions)) {
                     // Both remoteRegionsToFetch and AzToRegionMapper.regionsToFetch need to be in sync
                     synchronized (instanceRegionChecker.getAzToRegionMapper()) {
