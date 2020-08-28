@@ -132,7 +132,9 @@ public final class EurekaHttpClients {
      */
     static ClosableResolver<AwsEndpoint> defaultBootstrapResolver(final EurekaClientConfig clientConfig,
                                                                   final InstanceInfo myInstanceInfo) {
+        // tongzhou,haidian
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
+        // tongzhou
         String myZone = InstanceInfo.getZone(availZones, myInstanceInfo);
 
         ClusterResolver<AwsEndpoint> delegateResolver = new ZoneAffinityClusterResolver(
@@ -140,7 +142,7 @@ public final class EurekaHttpClients {
                 myZone,
                 true
         );
-
+        // initialValue保存了client对应region下的zone以及zone下的service-url
         List<AwsEndpoint> initialValue = delegateResolver.getClusterEndpoints();
         if (initialValue.isEmpty()) {
             String msg = "Initial resolution of Eureka server endpoints failed. Check ConfigClusterResolver logs for more info";

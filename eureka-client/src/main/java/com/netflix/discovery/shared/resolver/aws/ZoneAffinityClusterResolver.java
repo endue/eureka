@@ -43,9 +43,9 @@ public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint>
      * A zoneAffinity defines zone affinity (true) or anti-affinity rules (false).
      */
     public ZoneAffinityClusterResolver(ClusterResolver<AwsEndpoint> delegate, String myZone, boolean zoneAffinity) {
-        this.delegate = delegate;
+        this.delegate = delegate;// ConfigClusterResolver类型
         this.myZone = myZone;
-        this.zoneAffinity = zoneAffinity;
+        this.zoneAffinity = zoneAffinity;// 默认true
     }
 
     @Override
@@ -56,8 +56,11 @@ public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint>
     @Override
     public List<AwsEndpoint> getClusterEndpoints() {
         List<AwsEndpoint>[] parts = ResolverUtils.splitByZone(delegate.getClusterEndpoints(), myZone);
+        // 获取当前服务所在zone的服务列表
         List<AwsEndpoint> myZoneEndpoints = parts[0];
+        // 获取非当前服务所在zone的服务列表
         List<AwsEndpoint> remainingEndpoints = parts[1];
+        // Merge到一起并做随机交换
         List<AwsEndpoint> randomizedList = randomizeAndMerge(myZoneEndpoints, remainingEndpoints);
         if (!zoneAffinity) {
             Collections.reverse(randomizedList);

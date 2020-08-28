@@ -216,23 +216,36 @@ public class EndpointUtils {
      */
     public static Map<String, List<String>> getServiceUrlsMapFromConfig(EurekaClientConfig clientConfig, String instanceZone, boolean preferSameZone) {
         Map<String, List<String>> orderedUrls = new LinkedHashMap<>();
+        // beijing
         String region = getRegion(clientConfig);
+        // tongzhou,haidian
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
+        // 如果availZones为空，则使用默认的default
         if (availZones == null || availZones.length == 0) {
             availZones = new String[1];
             availZones[0] = DEFAULT_ZONE;
         }
         logger.debug("The availability zone for the given region {} are {}", region, Arrays.toString(availZones));
+        // 返回我的zone在所有zone中的下标，这里返回0
         int myZoneOffset = getZoneOffset(instanceZone, preferSameZone, availZones);
-
+        // 返回tongzhou
         String zone = availZones[myZoneOffset];
+        // 返回http://localhost:8760/eureka,http://localhost:8761/eureka,http://localhost:8762/eureka
         List<String> serviceUrls = clientConfig.getEurekaServerServiceUrls(zone);
         if (serviceUrls != null) {
             orderedUrls.put(zone, serviceUrls);
         }
+
+        /**
+         * 这个while选好就是解析所有zone的service-url
+         */
+        // 如果我的zone的下标是所有zone的最后一个，则返回下标0，否则我的zone的下标+1
         int currentOffset = myZoneOffset == (availZones.length - 1) ? 0 : (myZoneOffset + 1);
+        // 当前下标不等于我的zone的下标
         while (currentOffset != myZoneOffset) {
+            // 返回haidian
             zone = availZones[currentOffset];
+            // 返回http://111.223.333.444:8761/eureka,http://222.223.333.444:8761/eureka,http://333.223.333.444:8761/eureka
             serviceUrls = clientConfig.getEurekaServerServiceUrls(zone);
             if (serviceUrls != null) {
                 orderedUrls.put(zone, serviceUrls);

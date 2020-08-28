@@ -73,10 +73,10 @@ public class AsyncResolver<T extends EurekaEndpoint> implements ClosableResolver
      * scheduled until after the first time getClusterEndpoints call.
      */
     public AsyncResolver(String name,
-                         ClusterResolver<T> delegate,
+                         ClusterResolver<T> delegate,//ZoneAffinityClusterResolver
                          List<T> initialValues,
-                         int executorThreadPoolSize,
-                         int refreshIntervalMs) {
+                         int executorThreadPoolSize,// 1
+                         int refreshIntervalMs ) {// 5 * 60 * 1000
         this(
                 name,
                 delegate,
@@ -106,13 +106,13 @@ public class AsyncResolver<T extends EurekaEndpoint> implements ClosableResolver
         this.delegate = delegate;
         this.refreshIntervalMs = refreshIntervalMs;
         this.warmUpTimeoutMs = warmUpTimeoutMs;
-
+        // 创建调度器
         this.executorService = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder()
                         .setNameFormat("AsyncResolver-" + name + "-%d")
                         .setDaemon(true)
                         .build());
-
+        // 创建线程池
         this.threadPoolExecutor = new ThreadPoolExecutor(
                 1, executorThreadPoolSize, 0, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),  // use direct handoff
@@ -204,6 +204,7 @@ public class AsyncResolver<T extends EurekaEndpoint> implements ClosableResolver
         @Override
         public void run() {
             try {
+                // 定时更新服务列表
                 List<T> newList = delegate.getClusterEndpoints();
                 if (newList != null) {
                     resultsRef.getAndSet(newList);

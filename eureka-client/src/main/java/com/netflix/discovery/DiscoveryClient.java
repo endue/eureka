@@ -394,6 +394,7 @@ public class DiscoveryClient implements EurekaClient {
             );  // use direct handoff
             // 初始化通信组件
             eurekaTransport = new EurekaTransport();
+            // 创建registrationClient客户端和queryClient客户端
             scheduleServerEndpointTask(eurekaTransport, args);
 
             AzToRegionMapper azToRegionMapper;
@@ -409,7 +410,7 @@ public class DiscoveryClient implements EurekaClient {
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize DiscoveryClient!", e);
         }
-        // 抓取某个eurekaServer服务注册列表,保存到localRegionApps中
+        // 抓取某个eurekaServer服务注册列表,保存到localRegionApps中，用的是queryClient
         if (clientConfig.shouldFetchRegistry() && !fetchRegistry(false)) {
             fetchRegistryFromBackup();
         }
@@ -418,7 +419,7 @@ public class DiscoveryClient implements EurekaClient {
         if (this.preRegistrationHandler != null) {
             this.preRegistrationHandler.beforeRegistration();
         }
-        // 启动定时任务并注册自己到eurekaServer
+        // 启动定时任务并注册自己到eurekaServer，用的是registrationClient
         initScheduledTasks();
 
         try {
@@ -479,7 +480,7 @@ public class DiscoveryClient implements EurekaClient {
                 }
             }
         };
-
+        // 解析zone中的service-url
         eurekaTransport.bootstrapResolver = EurekaHttpClients.newBootstrapResolver(
                 clientConfig,
                 transportConfig,
@@ -487,7 +488,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.getInfo(),
                 applicationsSource
         );
-
+        //
         if (clientConfig.shouldRegisterWithEureka()) {
             EurekaHttpClientFactory newRegistrationClientFactory = null;
             EurekaHttpClient newRegistrationClient = null;
