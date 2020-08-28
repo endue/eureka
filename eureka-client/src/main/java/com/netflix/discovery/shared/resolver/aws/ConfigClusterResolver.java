@@ -79,7 +79,7 @@ public class ConfigClusterResolver implements ClusterResolver<AwsEndpoint> {
         Map<String, List<String>> serviceUrls = EndpointUtils
                 .getServiceUrlsMapFromConfig(clientConfig, myZone, clientConfig.shouldPreferSameZoneEureka());
         // 把所有的url封装成一个个的AwsEndpoint
-        // region:beijing、zone:tongzhou,haidian
+        // region:shanghai、zone:sh-1,sh-2
         List<AwsEndpoint> endpoints = new ArrayList<>();
         for (String zone : serviceUrls.keySet()) {
             for (String url : serviceUrls.get(zone)) {
