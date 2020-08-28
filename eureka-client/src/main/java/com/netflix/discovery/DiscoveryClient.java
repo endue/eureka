@@ -480,6 +480,25 @@ public class DiscoveryClient implements EurekaClient {
                 }
             }
         };
+        /**
+         * server:
+         *   port: 8081
+         * spring:
+         *   application:
+         *     name: server-01
+         * eureka:
+         *   instance:
+         *     hostname: localhost
+         *     metadata-map:
+         *       zone: tongzhou
+         *   client:
+         *     region: beijing # 默认us-east-1
+         *     availability-zones:
+         *       beijing: tongzhou,haidian
+         *     service-url:
+         *       tongzhou: http://localhost:8760/eureka,http://localhost:8761/eureka,http://localhost:8762/eureka
+         *       haidian: http://111.223.333.444:8761/eureka,http://222.223.333.444:8761/eureka,http://333.223.333.444:8761/eureka
+         */
         // 解析zone中的service-url
         eurekaTransport.bootstrapResolver = EurekaHttpClients.newBootstrapResolver(
                 clientConfig,
