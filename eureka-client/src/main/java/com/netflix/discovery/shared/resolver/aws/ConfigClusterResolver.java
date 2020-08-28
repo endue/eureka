@@ -69,10 +69,12 @@ public class ConfigClusterResolver implements ClusterResolver<AwsEndpoint> {
     }
 
     private List<AwsEndpoint> getClusterEndpointsFromConfig() {
-        // tongzhou,haidian
+        // 第一步解析eureka.region配置的值，返回beijing，默认us-east-1
+        // 第二步解析eureka.region.availabilityZones配置的值，返回tongzhou,haidian，默认defaultZone
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
-        // tongzhou
+        // 返回availZones数组中下标为0的zone为服务自己的zone，这里返回tongzhou，默认default
         String myZone = InstanceInfo.getZone(availZones, myInstanceInfo);
+        // clientConfig.shouldPreferSameZoneEureka()默认true，表示开始解析是否从自己的zone开始
         // key是zone名称，value是url地址
         Map<String, List<String>> serviceUrls = EndpointUtils
                 .getServiceUrlsMapFromConfig(clientConfig, myZone, clientConfig.shouldPreferSameZoneEureka());

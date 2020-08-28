@@ -489,8 +489,6 @@ public class DiscoveryClient implements EurekaClient {
          * eureka:
          *   instance:
          *     hostname: localhost
-         *     metadata-map:
-         *       zone: tongzhou
          *   client:
          *     region: beijing # 默认us-east-1
          *     availability-zones:
@@ -498,8 +496,17 @@ public class DiscoveryClient implements EurekaClient {
          *     service-url:
          *       tongzhou: http://localhost:8760/eureka,http://localhost:8761/eureka,http://localhost:8762/eureka
          *       haidian: http://111.223.333.444:8761/eureka,http://222.223.333.444:8761/eureka,http://333.223.333.444:8761/eureka
+         * --------------------------------------------------------------------------------------------------------------------------
+         * ##简单配置
+         * #eureka:
+         * #  client:
+         * #    service-url: # EurekaServer的地址，现在是自己的地址，如果是集群，需要加上其它Server的地址。
+         * #      defaultZone: http://127.0.0.1:10086/eureka
+         * #    register-with-eureka: false #不向注册中心注册自己
+         * #    fetch-registry: false  #不向注册中心拉取服务列表
          */
         // 解析zone中的service-url
+        // 并返回一个AsyncResolver，里面包含一个没5分钟执行一次的定时任务
         eurekaTransport.bootstrapResolver = EurekaHttpClients.newBootstrapResolver(
                 clientConfig,
                 transportConfig,
@@ -507,7 +514,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.getInfo(),
                 applicationsSource
         );
-        //
+        // 初始化registrationClient
         if (clientConfig.shouldRegisterWithEureka()) {
             EurekaHttpClientFactory newRegistrationClientFactory = null;
             EurekaHttpClient newRegistrationClient = null;
@@ -527,6 +534,7 @@ public class DiscoveryClient implements EurekaClient {
 
         // new method (resolve from primary servers for read)
         // Configure new transport layer (candidate for injecting in the future)
+        // 初始化queryClient
         if (clientConfig.shouldFetchRegistry()) {
             EurekaHttpClientFactory newQueryClientFactory = null;
             EurekaHttpClient newQueryClient = null;

@@ -55,13 +55,18 @@ public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint>
 
     @Override
     public List<AwsEndpoint> getClusterEndpoints() {
+        // 第一步调用delegate.getClusterEndpoints()，这里的delegate为ConfigClusterResolver解析配置的region以及zone，以及zone对应的url。
+        // 把所有的url封装成一个个的AwsEndpoint
+        // region:beijing、zone:tongzhou,haidian
+        // 第二步根据当前服务所在的zone,把AwsEndpoint列表分成两个组
         List<AwsEndpoint>[] parts = ResolverUtils.splitByZone(delegate.getClusterEndpoints(), myZone);
-        // 获取当前服务所在zone的服务列表
+        // 与当前服务在同zone的服务列表
         List<AwsEndpoint> myZoneEndpoints = parts[0];
-        // 获取非当前服务所在zone的服务列表
+        // 与当前服务不在同zone的服务列表
         List<AwsEndpoint> remainingEndpoints = parts[1];
-        // Merge到一起并做随机交换
+        // 对myZoneEndpoints和remainingEndpoints根据当前服务IP随机打乱，之后merge到一起
         List<AwsEndpoint> randomizedList = randomizeAndMerge(myZoneEndpoints, remainingEndpoints);
+        // 排序，默认不排
         if (!zoneAffinity) {
             Collections.reverse(randomizedList);
         }
@@ -80,7 +85,9 @@ public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint>
         if (remainingEndpoints.isEmpty()) {
             return ResolverUtils.randomize(myZoneEndpoints);
         }
+        // 根据当前服务IP打乱myZoneEndpoints
         List<AwsEndpoint> mergedList = ResolverUtils.randomize(myZoneEndpoints);
+        // 根据当前服务IP打乱remainingEndpoints之后加入到mergedList中
         mergedList.addAll(ResolverUtils.randomize(remainingEndpoints));
         return mergedList;
     }

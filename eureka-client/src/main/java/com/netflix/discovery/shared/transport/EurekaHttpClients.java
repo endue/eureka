@@ -132,24 +132,27 @@ public final class EurekaHttpClients {
      */
     static ClosableResolver<AwsEndpoint> defaultBootstrapResolver(final EurekaClientConfig clientConfig,
                                                                   final InstanceInfo myInstanceInfo) {
-        // tongzhou,haidian
+        // 第一步解析eureka.region配置的值，返回beijing，默认us-east-1
+        // 第二步解析eureka.region.availabilityZones配置的值，返回tongzhou,haidian，默认defaultZone
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
-        // tongzhou
+        // 返回availZones数组中下标为0的zone为服务自己的zone，这里返回tongzhou，默认default
         String myZone = InstanceInfo.getZone(availZones, myInstanceInfo);
-
+        // 创建一个ZoneAffinityClusterResolver，其里面的delegate为ConfigClusterResolver
         ClusterResolver<AwsEndpoint> delegateResolver = new ZoneAffinityClusterResolver(
                 new ConfigClusterResolver(clientConfig, myInstanceInfo),
                 myZone,
                 true
         );
         // initialValue保存了client对应region下的zone以及zone下的service-url
+        // 只不过顺序不一定是文件中的顺序而是打乱的顺序
         List<AwsEndpoint> initialValue = delegateResolver.getClusterEndpoints();
         if (initialValue.isEmpty()) {
             String msg = "Initial resolution of Eureka server endpoints failed. Check ConfigClusterResolver logs for more info";
             logger.error(msg);
             failFastOnInitCheck(clientConfig, msg);
         }
-
+        // 定时任务5分钟一次
+        // 定时更新服务列表
         return new AsyncResolver<>(
                 EurekaClientNames.BOOTSTRAP,
                 delegateResolver,

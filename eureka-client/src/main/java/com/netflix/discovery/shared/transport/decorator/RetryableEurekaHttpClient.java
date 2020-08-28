@@ -61,7 +61,7 @@ public class RetryableEurekaHttpClient extends EurekaHttpClientDecorator {
 
     private final String name;
     private final EurekaTransportConfig transportConfig;
-    private final ClusterResolver clusterResolver;
+    private final ClusterResolver clusterResolver;// AsyncResolver
     private final TransportClientFactory clientFactory;
     private final ServerStatusEvaluator serverStatusEvaluator;
     private final int numberOfRetries;

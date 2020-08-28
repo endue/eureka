@@ -87,9 +87,11 @@ public final class ResolverUtils {
      */
     public static <T extends EurekaEndpoint> List<T> randomize(List<T> list) {
         List<T> randomList = new ArrayList<>(list);
+        // 当前服务zone的service-url至少2个才继续执行
         if (randomList.size() < 2) {
             return randomList;
         }
+        // 根据当前服务IP打乱list中的数据
         Random random = new Random(LOCAL_IPV4_ADDRESS.hashCode());
         int last = randomList.size() - 1;
         for (int i = 0; i < last; i++) {
