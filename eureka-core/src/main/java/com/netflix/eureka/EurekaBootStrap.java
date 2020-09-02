@@ -111,6 +111,7 @@ public class EurekaBootStrap implements ServletContextListener {
     public void contextInitialized(ServletContextEvent event) {
         try {
             // 初始化eureka数据中心和环境
+            // eureka.datacenter、eureka.environment
             initEurekaEnvironment();
             // 加载配置文件初始化上下文
             initEurekaServerContext();
@@ -163,22 +164,25 @@ public class EurekaBootStrap implements ServletContextListener {
 
 
         if (eurekaClient == null) {
+            // 创建eurekaInstance配置文件类
             EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
                     ? new CloudInstanceConfig()
                     : new MyDataCenterInstanceConfig();
-            // 第一步创建实例instanceInfo
-            // 第二步根据实例和配置文件创建applicationInfoManager
+            // 第一步基于instanceConfig创建一个instanceInfo
+            // 第二步基于instanceConfig和instanceInfo创建一个applicationInfoManager
             applicationInfoManager = new ApplicationInfoManager(
                     instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
-            // 创建eurekaClient默认配置
+            // 创建eurekaClient默认配置类
             EurekaClientConfig eurekaClientConfig = new DefaultEurekaClientConfig();
-            // 【重点】初始化
+            // 初始化一个eurekaClient，并将applicationInfoManager记录到eurekaClient
+            // 相对其他eurekaServer，当前eurekaServer也是一个eurekaClient
             eurekaClient = new DiscoveryClient(applicationInfoManager, eurekaClientConfig);
         } else {
             applicationInfoManager = eurekaClient.getApplicationInfoManager();
         }
 
-        // 初始化服务注册列表组件
+        // 初始化服务注册列表组件，用来保存eurekaClient
+        // 里面启动一个定时任务用来清空recentlyChangedQueue里过期数据，延迟30s执行，之后每30秒运行一次
         PeerAwareInstanceRegistry registry;
         if (isAws(applicationInfoManager.getInfo())) {
             registry = new AwsInstanceRegistry(
@@ -198,7 +202,7 @@ public class EurekaBootStrap implements ServletContextListener {
             );
         }
 
-        // 初始化集群管理组件
+        // 初始化集群管理组件，用来保存eurekaServer
         PeerEurekaNodes peerEurekaNodes = getPeerEurekaNodes(
                 registry,
                 eurekaServerConfig,
@@ -217,16 +221,17 @@ public class EurekaBootStrap implements ServletContextListener {
         );
 
         EurekaServerContextHolder.initialize(serverContext);
-        // 初始化peerEurekaNode
+        // 初始化peerEurekaNode，启动定时任务更新peerEurekaNode
         // 初始化一二级缓存
-        // 启动定时任务更新expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold，15分钟一次
+        // 启动定时任务更新expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold，延迟15分钟，之后每15分钟一次
         serverContext.initialize();
         logger.info("Initialized server context");
 
         // Copy registry from neighboring eureka node
         // 从localRegionApps中获取其他服务的注册列表然后保存到本地
         int registryCount = registry.syncUp();
-        // 启动服务自动摘除定时任务
+        // 初始化expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold
+        // 并启动服务自动摘除定时任务
         registry.openForTraffic(applicationInfoManager, registryCount);
 
         // 7 Register all monitoring statistics.

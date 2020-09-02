@@ -85,6 +85,9 @@ public class PeerEurekaNodes {
                 }
         );
         try {
+            // 第一步：解析当前region(默认default)下的所有zone,之后解析所有zone下的service-url
+            // 第二步：解析第一步中的所有service-url并保存
+            // 第三步：创建任务以及调度器，延迟10分钟执行，之后每10分钟执行一次更新service-url
             updatePeerEurekaNodes(resolvePeerUrls());
             Runnable peersUpdateTask = new Runnable() {
                 @Override
@@ -130,11 +133,14 @@ public class PeerEurekaNodes {
      * @return peer URLs with node's own URL filtered out
      */
     protected List<String> resolvePeerUrls() {
+        // 获取当前服务InstanceInfo实例信息
         InstanceInfo myInfo = applicationInfoManager.getInfo();
+        // 根据当前服务所在region,获取对应region下的availability-zones，之后获取自己对应的zone
         String zone = InstanceInfo.getZone(clientConfig.getAvailabilityZones(clientConfig.getRegion()), myInfo);
+        // 解析当前region下所有zone对应的service-url到replicaUrls中
         List<String> replicaUrls = EndpointUtils
                 .getDiscoveryServiceUrls(clientConfig, zone, new EndpointUtils.InstanceInfoBasedUrlRandomizer(myInfo));
-
+        // 从replicaUrls中剔除自己的url
         int idx = 0;
         while (idx < replicaUrls.size()) {
             if (isThisMyUrl(replicaUrls.get(idx))) {
@@ -157,10 +163,11 @@ public class PeerEurekaNodes {
             logger.warn("The replica size seems to be empty. Check the route 53 DNS Registry");
             return;
         }
-        // 标记出当前需要关闭的节点
+        // 记录当前需要剔除的节点
+        // 就是先获取所有旧的server节点，然后从newPeerUrls中剔除掉存在的，剩下的就是待关闭节点
         Set<String> toShutdown = new HashSet<>(peerEurekaNodeUrls);
         toShutdown.removeAll(newPeerUrls);
-        // 标记出当前需要新增加的节点
+        // 记录出当前需要增加的节点
         Set<String> toAdd = new HashSet<>(newPeerUrls);
         toAdd.removeAll(peerEurekaNodeUrls);
 
@@ -171,6 +178,7 @@ public class PeerEurekaNodes {
         // Remove peers no long available
         List<PeerEurekaNode> newNodeList = new ArrayList<>(peerEurekaNodes);
 
+        // 剔除节点
         if (!toShutdown.isEmpty()) {
             logger.info("Removing no longer available peer nodes {}", toShutdown);
             int i = 0;

@@ -174,7 +174,9 @@ public class EndpointUtils {
      */
     public static List<String> getServiceUrlsFromConfig(EurekaClientConfig clientConfig, String instanceZone, boolean preferSameZone) {
         List<String> orderedUrls = new ArrayList<String>();
+        // 获取当前客户端所在region
         String region = getRegion(clientConfig);
+        // 获取region对应的zone
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         if (availZones == null || availZones.length == 0) {
             availZones = new String[1];
@@ -227,7 +229,7 @@ public class EndpointUtils {
             availZones[0] = DEFAULT_ZONE;
         }
         logger.debug("The availability zone for the given region {} are {}", region, Arrays.toString(availZones));
-        // 返回当前服务zone在所有region的所有zone中的下标，这里返回0
+        // 返回当前服务zone在region的所有zone中的下标，这里返回0
         int myZoneOffset = getZoneOffset(instanceZone, preferSameZone, availZones);
         // 返回sh-1
         String zone = availZones[myZoneOffset];

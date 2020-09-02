@@ -120,12 +120,13 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         this.recentRegisteredQueue = new CircularQueue<Pair<Long, String>>(1000);
 
         this.renewsLastMin = new MeasuredRate(1000 * 60 * 1);
-        // 定时清空recentlyChangedQueue里过期数据
+        // 定时清空recentlyChangedQueue里过期数据，延迟30s执行，之后每30秒运行一次
         this.deltaRetentionTimer.schedule(getDeltaRetentionTask(),
-                serverConfig.getDeltaRetentionTimerIntervalInMs(),
-                serverConfig.getDeltaRetentionTimerIntervalInMs());
+                serverConfig.getDeltaRetentionTimerIntervalInMs(),//30 * 1000
+                serverConfig.getDeltaRetentionTimerIntervalInMs());//30 * 1000
     }
 
+    // 初始化缓存，包括一二级
     @Override
     public synchronized void initializedResponseCache() {
         if (responseCache == null) {
@@ -188,7 +189,11 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      * Registers a new instance with a given duration.
      *
      * @see com.netflix.eureka.lease.LeaseManager#register(java.lang.Object, int, boolean)
+     * @param registrant 服务实例
+     * @param leaseDuration 续约时间，默认续约90s
+     * @param isReplication
      */
+
     public void register(InstanceInfo registrant, int leaseDuration, boolean isReplication) {
         try {
             // 读锁
@@ -205,10 +210,12 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     gMap = gNewMap;
                 }
             }
-            // 通过服务ID获取注册的实例
+            // 通过服务ID获取注册的服务
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
+            // 如果已经有租约，保留最后一个脏时间戳而不覆盖它
             if (existingLease != null && (existingLease.getHolder() != null)) {
+
                 Long existingLastDirtyTimestamp = existingLease.getHolder().getLastDirtyTimestamp();
                 Long registrationLastDirtyTimestamp = registrant.getLastDirtyTimestamp();
                 logger.debug("Existing lease found (existing={}, provided={}", existingLastDirtyTimestamp, registrationLastDirtyTimestamp);
@@ -223,6 +230,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
             } else {
                 // The lease does not exist and hence it is a new registration
+                // 租赁不存在，需要修改自我保护相关的两个值
                 synchronized (lock) {
                     if (this.expectedNumberOfRenewsPerMin > 0) {
                         // Since the client wants to cancel it, reduce the threshold
@@ -236,10 +244,13 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 logger.debug("No previous lease information found; it is new registration");
             }
             Lease<InstanceInfo> lease = new Lease<InstanceInfo>(registrant, leaseDuration);
+            // 非新增服务，修改启动时间戳
             if (existingLease != null) {
                 lease.setServiceUpTimestamp(existingLease.getServiceUpTimestamp());
             }
+            // 记录到gMap
             gMap.put(registrant.getId(), lease);
+            // 将当前服务保存到最近注册的队列中
             synchronized (recentRegisteredQueue) {
                 recentRegisteredQueue.add(new Pair<Long, String>(
                         System.currentTimeMillis(),
@@ -269,8 +280,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 lease.serviceUp();
             }
             registrant.setActionType(ActionType.ADDED);
+            // 将当前服务记录到最近改变服务队列recentlyChangedQueue中
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             registrant.setLastUpdatedTimestamp();
+            // 更新自己缓存
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
                     registrant.getAppName(), registrant.getId(), registrant.getStatus(), isReplication);
@@ -1357,6 +1370,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             public void run() {
                 Iterator<RecentlyChangedItem> it = recentlyChangedQueue.iterator();
                 while (it.hasNext()) {
+                    // InstanceInfo的lastUpdateTime超过180s没更新就从recentlyChangedQueue删除
                     if (it.next().getLastUpdateTime() <
                             // retentionTimeInMSInDeltaQueue默认3 * 60 * 1000
                             System.currentTimeMillis() - serverConfig.getRetentionTimeInMSInDeltaQueue()) {
