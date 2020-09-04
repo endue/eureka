@@ -1250,6 +1250,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     }
 
     protected void postInit() {
+        // 启动定时任务，每分钟执行一次
+        // 将上一分钟获取的续约次数记录到lastBucket
+        // currentBucket记录当前分钟内的续约次数
         renewsLastMin.start();
         if (evictionTaskRef.get() != null) {
             evictionTaskRef.get().cancel();
