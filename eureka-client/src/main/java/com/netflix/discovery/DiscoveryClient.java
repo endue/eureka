@@ -1048,6 +1048,7 @@ public class DiscoveryClient implements EurekaClient {
 
     private String getReconcileHashCode(Applications applications) {
         TreeMap<String, AtomicInteger> instanceCountMap = new TreeMap<String, AtomicInteger>();
+        // 判断fetchRemoteRegionsRegistry是否不为null，默认为null，这里返回false不执行
         if (isFetchingRemoteRegionRegistries()) {
             for (Applications remoteApp : remoteRegionVsApps.values()) {
                 remoteApp.populateInstanceCountMap(instanceCountMap);
@@ -1126,7 +1127,7 @@ public class DiscoveryClient implements EurekaClient {
                 try {
                     // 将增量服务实例列表保存到本地缓存
                     updateDelta(delta);
-
+                    // 计算本地缓存服务的hashcode
                     reconcileHashCode = getReconcileHashCode(applications);
                 } finally {
                     fetchRegistryUpdateLock.unlock();
@@ -1135,6 +1136,7 @@ public class DiscoveryClient implements EurekaClient {
                 logger.warn("Cannot acquire update lock, aborting getAndUpdateDelta");
             }
             // There is a diff in number of instances for some reasonThere is a diff in number of instances for some reason
+            // 比较本地缓存的服务hash值和远程服务hash值，不相等则全量在拉取一遍
             if (!reconcileHashCode.equals(delta.getAppsHashCode()) || clientConfig.shouldLogDeltaDiff()) {
                 reconcileAndLogDifference(delta, reconcileHashCode);  // this makes a remoteCall
             }
