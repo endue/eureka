@@ -482,6 +482,10 @@ public class DiscoveryClient implements EurekaClient {
             }
         };
         /**
+         *
+         *
+         * -------------------------------------------------------
+         * eurekaClient配置：
          * server:
          *   port: 8082
          * spring:
@@ -495,11 +499,8 @@ public class DiscoveryClient implements EurekaClient {
          *   client:
          *     region: shanghai # 默认us-east-1
          *     availability-zones:
-         *       beijing: bj-1,bj-2
          *       shanghai: sh-1,sh-2
          *     service-url:
-         *       bj-1: http://localhost:8760/eureka,http://localhost:8761/eureka
-         *       bj-2: http://localhost:8762/eureka,http://localhost:8763/eureka
          *       sh-1: http://localhost:8764/eureka,http://localhost:8765/eureka
          *       sh-2: http://localhost:8766/eureka,http://localhost:8767/eureka
          *     prefer-same-zone-eureka: true

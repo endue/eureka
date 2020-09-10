@@ -215,6 +215,7 @@ public class EndpointUtils {
      * @return an (ordered) map of zone -> list of urls mappings, with the preferred zone first in iteration order
      */
     public static Map<String, List<String>> getServiceUrlsMapFromConfig(EurekaClientConfig clientConfig, String instanceZone, boolean preferSameZone) {
+        // 有序的map，preferSameZone就是为了解析到map是不是头一个是自己
         Map<String, List<String>> orderedUrls = new LinkedHashMap<>();
         // 获取当前服务的region，这里返回shanghai，默认default
         String region = getRegion(clientConfig);
@@ -239,7 +240,16 @@ public class EndpointUtils {
         }
 
         /**
-         * 这个while循环就是解析所有zone的service-url并保存到map中
+         * 假设
+         * preferSameZone：true
+         *  availZones为：bj-1,bj-2,bj-2
+         *      myZoneOffset为：0  currentOffset为：1
+         *      myZoneOffset为：1  currentOffset为：2
+         *      myZoneOffset为：2  currentOffset为：0
+         * preferSameZone：false
+         *  availZones为：bj-1,bj-2,bj-2
+         *  myZoneOffset为：0  currentOffset为：1
+         *
          */
         // 如果我的zone的下标是所有zone的最后一个，则返回下标0，否则我的zone的下标+1
         int currentOffset = myZoneOffset == (availZones.length - 1) ? 0 : (myZoneOffset + 1);
