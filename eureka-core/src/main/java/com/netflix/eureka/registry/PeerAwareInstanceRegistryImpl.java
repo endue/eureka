@@ -151,9 +151,17 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         this.peerEurekaNodes = peerEurekaNodes;
         // 初始化ResponseCache，里面有一二级缓存更新的定时任务
         initializedResponseCache();
-        // 启动定时任务更新expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold，15分钟一次
+        // 启动定时任务，延迟15分钟，之后每15分钟一次
+        // 通过判断本地localRegionApps中缓存的服务数来更新
+        // expectedNumberOfRenewsPerMin、numberOfRenewsPerMinThreshold
         scheduleRenewalThresholdUpdateTask();
-
+        // 初始化远程服务
+        /**
+         * 配置如下：
+         * eureka:
+         *   server:
+         *     remote-region-urls-with-name:
+         */
         initRemoteRegionRegistry();
 
         try {
@@ -196,8 +204,8 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                            public void run() {
                                updateRenewalThreshold();
                            }
-                       }, serverConfig.getRenewalThresholdUpdateIntervalMs(),
-                serverConfig.getRenewalThresholdUpdateIntervalMs());
+                       }, serverConfig.getRenewalThresholdUpdateIntervalMs(),//15 * 60 * 1000
+                serverConfig.getRenewalThresholdUpdateIntervalMs());//15 * 60 * 1000
     }
 
     /**
@@ -209,16 +217,18 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     public int syncUp() {
         // Copy entire entry from neighboring DS node
         int count = 0;
-
+        // 默认numberRegistrySyncRetries = 5
         for (int i = 0; ((i < serverConfig.getRegistrySyncRetries()) && (count == 0)); i++) {
             if (i > 0) {
                 try {
+                    // 30 * 1000
                     Thread.sleep(serverConfig.getRegistrySyncRetryWaitMs());
                 } catch (InterruptedException e) {
                     logger.warn("Interrupted during registry transfer..");
                     break;
                 }
             }
+            // 获取本地缓存的服务实例
             Applications apps = eurekaClient.getApplications();
             for (Application app : apps.getRegisteredApplications()) {
                 for (InstanceInfo instance : app.getInstances()) {
@@ -386,6 +396,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         if (super.cancel(appName, id, isReplication)) {
             replicateToPeers(Action.Cancel, appName, id, null, null, isReplication);
             synchronized (lock) {
+                // 1.7版本中如果修改客户端默认心跳30s为其他时间，这里计算就有问题，bug
                 if (this.expectedNumberOfRenewsPerMin > 0) {
                     // Since the client wants to cancel it, reduce the threshold (1 for 30 seconds, 2 for a minute)
                     this.expectedNumberOfRenewsPerMin = this.expectedNumberOfRenewsPerMin - 2;
@@ -528,8 +539,10 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      */
     private void updateRenewalThreshold() {
         try {
+            // 获取本地缓存的服务实例
             Applications apps = eurekaClient.getApplications();
             int count = 0;
+            // 获取每个服务实例缓存的服务实例
             for (Application app : apps.getRegisteredApplications()) {
                 for (InstanceInfo instance : app.getInstances()) {
                     if (this.isRegisterable(instance)) {
@@ -537,6 +550,8 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                     }
                 }
             }
+            // 根据当前缓存的服务实例数量判断是否需要更新服务自我保护相关的两个值
+            // expectedNumberOfRenewsPerMin、numberOfRenewsPerMinThreshold
             synchronized (lock) {
                 // Update threshold only if the threshold is greater than the
                 // current expected threshold of if the self preservation is disabled.

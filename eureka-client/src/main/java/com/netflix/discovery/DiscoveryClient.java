@@ -310,14 +310,17 @@ public class DiscoveryClient implements EurekaClient {
         }
         // 获取当前服务实例管理器
         this.applicationInfoManager = applicationInfoManager;
-        // 获取服务实例
+        // 获取自己的服务实例instanceInfo
         InstanceInfo myInfo = applicationInfoManager.getInfo();
-
+        // 获取客户端配置文件类
         clientConfig = config;
         staticClientConfig = clientConfig;
+        // 获取配置类中默认的传输配置类
         transportConfig = config.getTransportConfig();
         instanceInfo = myInfo;
         if (myInfo != null) {
+            // appName默认unknown
+            // id默认defaultAddress
             appPathIdentifier = instanceInfo.getAppName() + "/" + instanceInfo.getId();
         } else {
             logger.warn("Setting instanceInfo to a passed in null value");
@@ -326,10 +329,17 @@ public class DiscoveryClient implements EurekaClient {
         this.backupRegistryProvider = backupRegistryProvider;
 
         this.urlRandomizer = new EndpointUtils.InstanceInfoBasedUrlRandomizer(instanceInfo);
+        // eurekaClient初始化一个Applications，保存自己本地缓存的所有服务
         localRegionApps.set(new Applications());
 
         fetchRegistryGeneration = new AtomicLong(0);
-
+        // 获取参数fetchRemoteRegionsRegistry的值，记录到AtomicReference<String[]> remoteRegionsRef中
+        // 意思就是获取远程区域注册表，默认null 配置如下：
+        /**
+         * eureka:
+         *   client:
+         *     fetch-remote-regions-registry:
+         */
         remoteRegionsToFetch = new AtomicReference<String>(clientConfig.fetchRegistryForRemoteRegions());
         remoteRegionsRef = new AtomicReference<>(remoteRegionsToFetch.get() == null ? null : remoteRegionsToFetch.get().split(","));
 
@@ -395,7 +405,7 @@ public class DiscoveryClient implements EurekaClient {
             );  // use direct handoff
             // 初始化通信组件
             eurekaTransport = new EurekaTransport();
-            // 创建registrationClient客户端和queryClient客户端
+            // 基于service-url中配置的地址，默认选择一个同zone的地址并创建registrationClient客户端和queryClient客户端
             scheduleServerEndpointTask(eurekaTransport, args);
 
             AzToRegionMapper azToRegionMapper;
@@ -411,7 +421,7 @@ public class DiscoveryClient implements EurekaClient {
         } catch (Throwable e) {
             throw new RuntimeException("Failed to initialize DiscoveryClient!", e);
         }
-        // 基于queryClient去抓取某个eurekaServer服务注册列表,保存到localRegionApps
+        // 基于queryClient去抓取某个eurekaServer的服务注册列表,保存到localRegionApps
         if (clientConfig.shouldFetchRegistry() && !fetchRegistry(false)) {
             fetchRegistryFromBackup();
         }
@@ -514,7 +524,7 @@ public class DiscoveryClient implements EurekaClient {
          *
          */
         // 解析zone中的service-url
-        // 并返回一个AsyncResolver，里面包含一个没5分钟执行一次的定时任务
+        // 并返回一个AsyncResolver，里面包含一个每5分钟执行一次的定时任务
         eurekaTransport.bootstrapResolver = EurekaHttpClients.newBootstrapResolver(
                 clientConfig,
                 transportConfig,
@@ -1039,6 +1049,7 @@ public class DiscoveryClient implements EurekaClient {
 
     private String getReconcileHashCode(Applications applications) {
         TreeMap<String, AtomicInteger> instanceCountMap = new TreeMap<String, AtomicInteger>();
+        // 判断fetchRemoteRegionsRegistry是否不为null，默认为null，这里返回false不执行
         if (isFetchingRemoteRegionRegistries()) {
             for (Applications remoteApp : remoteRegionVsApps.values()) {
                 remoteApp.populateInstanceCountMap(instanceCountMap);
@@ -1117,7 +1128,7 @@ public class DiscoveryClient implements EurekaClient {
                 try {
                     // 将增量服务实例列表保存到本地缓存
                     updateDelta(delta);
-
+                    // 计算本地缓存服务的hashcode
                     reconcileHashCode = getReconcileHashCode(applications);
                 } finally {
                     fetchRegistryUpdateLock.unlock();
@@ -1126,6 +1137,7 @@ public class DiscoveryClient implements EurekaClient {
                 logger.warn("Cannot acquire update lock, aborting getAndUpdateDelta");
             }
             // There is a diff in number of instances for some reasonThere is a diff in number of instances for some reason
+            // 比较本地缓存的服务hash值和远程服务hash值，不相等则全量在拉取一遍
             if (!reconcileHashCode.equals(delta.getAppsHashCode()) || clientConfig.shouldLogDeltaDiff()) {
                 reconcileAndLogDifference(delta, reconcileHashCode);  // this makes a remoteCall
             }
@@ -1288,7 +1300,7 @@ public class DiscoveryClient implements EurekaClient {
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
             // 10
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
-            // 启动刷新本地缓存的任务,每30s执行一次
+            // 启动刷新本地缓存localRegionApps的任务,每30s执行一次
             scheduler.schedule(
                     new TimedSupervisorTask(
                             "cacheRefresh",
@@ -1490,7 +1502,7 @@ public class DiscoveryClient implements EurekaClient {
     @VisibleForTesting
     void refreshRegistry() {
         try {
-            // 1486--1515需配置dataCenter为Amazon，可跳过
+
             // 判断remoteRegionsToFetch中值是否为null
             boolean isFetchingRemoteRegionRegistries = isFetchingRemoteRegionRegistries();
 

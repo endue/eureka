@@ -114,9 +114,13 @@ public class ResponseCacheImpl implements ResponseCache {
 
     private final ConcurrentMap<Key, Value> readOnlyCacheMap = new ConcurrentHashMap<Key, Value>();
 
+    // 二级缓存
     private final LoadingCache<Key, Value> readWriteCacheMap;
+    // 是否开启只读缓存，默认true
     private final boolean shouldUseReadOnlyResponseCache;
+    // 这个是PeerAwareInstanceRegistryImpl
     private final AbstractInstanceRegistry registry;
+    // eurekaServer服务配置类
     private final EurekaServerConfig serverConfig;
     private final ServerCodecs serverCodecs;
 
@@ -348,10 +352,13 @@ public class ResponseCacheImpl implements ResponseCache {
         Value payload = null;
         try {
             if (useReadOnlyCache) {
+                // 从一级缓存readOnlyCacheMap中获取
                 final Value currentPayload = readOnlyCacheMap.get(key);
                 if (currentPayload != null) {
                     payload = currentPayload;
                 } else {
+                    // 一级缓存空，从二级缓存readWriteCacheMap中获取
+                    // 之后将值保存到一级缓存
                     payload = readWriteCacheMap.get(key);
                     readOnlyCacheMap.put(key, payload);
                 }
