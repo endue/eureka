@@ -149,7 +149,7 @@ public class EurekaBootStrap implements ServletContextListener {
      * init hook for server context. Override for custom logic.
      */
     protected void initEurekaServerContext() throws Exception {
-        // 1 创建eurekaServer默认配置
+        // 1 初始化eurekaServer的配置
         EurekaServerConfig eurekaServerConfig = new DefaultEurekaServerConfig();
 
         // For backward compatibility
@@ -160,12 +160,12 @@ public class EurekaBootStrap implements ServletContextListener {
         logger.info(eurekaServerConfig.getJsonCodecName());
         ServerCodecs serverCodecs = new DefaultServerCodecs(eurekaServerConfig);
 
-        // 2
+        // 2 初始化eurekaServer内部的eurekaClient(因为集群模式下A服务相对B服务来说是个客户端)
         ApplicationInfoManager applicationInfoManager = null;
 
 
         if (eurekaClient == null) {
-            // 创建eurekaInstance配置文件类
+            // 创建eurekaInstance配置文件类,isCloud()方法返回的false,这里创建的是MyDataCenterInstanceConfig
             EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
                     ? new CloudInstanceConfig()
                     : new MyDataCenterInstanceConfig();
