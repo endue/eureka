@@ -119,7 +119,8 @@ public class MetricsCollectingEurekaHttpClient extends EurekaHttpClientDecorator
             @Override
             public EurekaHttpClient newClient(EurekaEndpoint endpoint) {
                 return new MetricsCollectingEurekaHttpClient(
-                        delegateFactory.newClient(endpoint),
+                        // JerseyEurekaHttpClientFactory
+                        delegateFactory.newClient(endpoint),// 返回JerseyApplicationClient
                         metricsByRequestType,
                         exceptionMetrics,
                         false

@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The class that holds information required for registration with
  * <tt>Eureka Server</tt> and to be discovered by other components.
+ * 该类包含向Eureka Server注册和被其他组件发现所需的信息。
  * <p>
  * <code>@Auto</code> annotated fields are serialized as is; Other fields are
  * serialized as specified by the <code>@Serializer</code>.

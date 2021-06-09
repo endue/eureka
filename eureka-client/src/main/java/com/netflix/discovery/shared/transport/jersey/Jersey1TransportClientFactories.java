@@ -45,6 +45,7 @@ public class Jersey1TransportClientFactories implements TransportClientFactories
     public TransportClientFactory newTransportClientFactory(final EurekaClientConfig clientConfig,
                                                                    final Collection<ClientFilter> additionalFilters,
                                                                    final InstanceInfo myInstanceInfo) {
+        // 创建JerseyEurekaHttpClientFactory
         final TransportClientFactory jerseyFactory = JerseyEurekaHttpClientFactory.create(
                 clientConfig,
                 additionalFilters,
@@ -56,6 +57,7 @@ public class Jersey1TransportClientFactories implements TransportClientFactories
         return new TransportClientFactory() {
             @Override
             public EurekaHttpClient newClient(EurekaEndpoint serviceUrl) {
+                // JerseyApplicationClient
                 return metricsFactory.newClient(serviceUrl);
             }
 

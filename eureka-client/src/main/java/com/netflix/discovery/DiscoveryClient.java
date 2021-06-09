@@ -163,7 +163,9 @@ public class DiscoveryClient implements EurekaClient {
     private volatile Map<String, Applications> remoteRegionVsApps = new ConcurrentHashMap<>();
     private volatile InstanceInfo.InstanceStatus lastRemoteInstanceStatus = InstanceInfo.InstanceStatus.UNKNOWN;
     private final CopyOnWriteArraySet<EurekaEventListener> eventListeners = new CopyOnWriteArraySet<>();
-
+    /**
+     * 当前服务的唯一表示:appName + instanceId 组成
+     */
     private String appPathIdentifier;
     private ApplicationInfoManager.StatusChangeListener statusChangeListener;
 
@@ -320,7 +322,6 @@ public class DiscoveryClient implements EurekaClient {
         instanceInfo = myInfo;
         if (myInfo != null) {
             // appName默认unknown
-            // id默认defaultAddress
             appPathIdentifier = instanceInfo.getAppName() + "/" + instanceInfo.getId();
         } else {
             logger.warn("Setting instanceInfo to a passed in null value");
