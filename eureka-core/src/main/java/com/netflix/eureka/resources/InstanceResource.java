@@ -89,6 +89,7 @@ public class InstanceResource {
 
     /**
      * A put request for renewing lease from a client instance.
+     * 处理服务续约
      *
      * @param isReplication
      *            a header parameter containing information whether this is
@@ -270,7 +271,7 @@ public class InstanceResource {
 
     /**
      * Handles cancellation of leases for this particular instance.
-     *
+     * 处理服务下线请求
      * @param isReplication
      *            a header parameter containing information whether this is
      *            replicated from other nodes.
