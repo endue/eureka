@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The class that initializes information required for registration with
  * <tt>Eureka Server</tt> and to be discovered by other components.
- *
+ * 初始化向Eureka Server注册和被其他组件发现所需的信息的类
  * <p>
  * The information required for registration is provided by the user by passing
  * the configuration defined by the contract in {@link EurekaInstanceConfig}

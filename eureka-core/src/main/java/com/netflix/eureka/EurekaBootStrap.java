@@ -149,7 +149,9 @@ public class EurekaBootStrap implements ServletContextListener {
      * init hook for server context. Override for custom logic.
      */
     protected void initEurekaServerContext() throws Exception {
-        // 1 初始化eurekaServer的配置
+        /**
+         * 1. 初始化eureka Server的配置
+         */
         EurekaServerConfig eurekaServerConfig = new DefaultEurekaServerConfig();
 
         // For backward compatibility
@@ -160,30 +162,30 @@ public class EurekaBootStrap implements ServletContextListener {
         logger.info(eurekaServerConfig.getJsonCodecName());
         ServerCodecs serverCodecs = new DefaultServerCodecs(eurekaServerConfig);
 
-        // 2 初始化eurekaServer内部的eurekaClient(因为集群模式下A服务相对B服务来说是个客户端)
+        /**
+         * 2. 定义ApplicationInfoManager用来管理向eureka Server注册和被其他组件发现所需的信息
+         */
         ApplicationInfoManager applicationInfoManager = null;
 
-
+        // 2.1 初始化eureka Server内部的eureka Client(因为集群模式下A服务相对B服务来说是个客户端)
         if (eurekaClient == null) {
-            // 创建eurekaInstance配置文件类,isCloud()方法返回的false,这里创建的是MyDataCenterInstanceConfig
-            EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
-                    ? new CloudInstanceConfig()
-                    : new MyDataCenterInstanceConfig();
-            // 第一步基于instanceConfig创建一个instanceInfo
-            // 第二步基于instanceConfig和instanceInfo创建一个applicationInfoManager
-            applicationInfoManager = new ApplicationInfoManager(
-                    instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
-            // 创建eurekaClient默认配置类
+            // 2.1.1 初始化实例注册到eureka Server服务器所需的配置信息,此处为MyDataCenterInstanceConfig
+            EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext()) ? new CloudInstanceConfig() : new MyDataCenterInstanceConfig();
+            // 2.1.2 基于EurekaInstanceConfig创建InstanceInfo,基于EurekaInstanceConfig与InstanceInfo初始化ApplicationInfoManager
+            applicationInfoManager = new ApplicationInfoManager(instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
+            // 2.1.3 初始化eureka Client的配置
             EurekaClientConfig eurekaClientConfig = new DefaultEurekaClientConfig();
-            // 初始化一个eurekaClient，并将applicationInfoManager记录到eurekaClient
-            // 相对其他eurekaServer，当前eurekaServer也是一个eurekaClient
+            // 2.1.4 初始化一个eureka Client
             eurekaClient = new DiscoveryClient(applicationInfoManager, eurekaClientConfig);
         } else {
             applicationInfoManager = eurekaClient.getApplicationInfoManager();
         }
 
-        // 初始化服务注册列表组件，用来保存eurekaClient
-        // 里面启动一个定时任务用来清空recentlyChangedQueue里过期数据，延迟30s执行，之后每30秒运行一次
+        /**
+         * 3. 初始化PeerAwareInstanceRegistry服务注册列表组件,默认为PeerAwareInstanceRegistryImpl
+         * PeerAwareInstanceRegistryImpl用来处理所有操作到对等的eureka节点，以保持所有操作同步,这些操作包括注册，续期，取消，过期和状态变化
+         * 内部启动一个定时任务用来清空recentlyChangedQueue里过期数据，延迟30s执行，之后每30秒运行一次
+         */
         PeerAwareInstanceRegistry registry;
         if (isAws(applicationInfoManager.getInfo())) {
             registry = new AwsInstanceRegistry(
@@ -203,7 +205,9 @@ public class EurekaBootStrap implements ServletContextListener {
             );
         }
 
-        // 初始化集群管理组件，用来保存eurekaServer
+        /**
+         * 4. 初始化PeerEurekaNode集群管理组件
+         */
         PeerEurekaNodes peerEurekaNodes = getPeerEurekaNodes(
                 registry,
                 eurekaServerConfig,
@@ -212,7 +216,9 @@ public class EurekaBootStrap implements ServletContextListener {
                 applicationInfoManager
         );
 
-        // 初始化上下文
+        /**
+         * 5. 初始化上下文并提供相关组件的getter方法
+         */
         serverContext = new DefaultEurekaServerContext(
                 eurekaServerConfig,
                 serverCodecs,
@@ -221,21 +227,27 @@ public class EurekaBootStrap implements ServletContextListener {
                 applicationInfoManager
         );
 
+        /**
+         * 6. 初始化EurekaServerContextHolder,内部持有DefaultEurekaServerContext
+         */
         EurekaServerContextHolder.initialize(serverContext);
-        // 初始化peerEurekaNode，启动定时任务更新peerEurekaNode
-        // 初始化一二级缓存
-        // 启动定时任务更新expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold，延迟15分钟，之后每15分钟一次
+        /**
+         * 7. 启动PeerEurekaNodes,初始化PeerAwareInstanceRegistryImpl
+         */
         serverContext.initialize();
         logger.info("Initialized server context");
 
         // Copy registry from neighboring eureka node
-        // 从localRegionApps中获取其他服务的注册列表然后保存到本地
+        /**
+         * 8. 从localRegionApps中获取其他服务的注册列表然后保存到本地
+         */
         int registryCount = registry.syncUp();
-        // 初始化expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold
-        // 并启动服务自动摘除定时任务
+        /**
+         * 9. 初始化expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold并启动服务自动摘除定时任务
+         */
         registry.openForTraffic(applicationInfoManager, registryCount);
 
-        // 7 Register all monitoring statistics.
+        // 10 Register all monitoring statistics.
         EurekaMonitors.registerAllStats();
     }
     
