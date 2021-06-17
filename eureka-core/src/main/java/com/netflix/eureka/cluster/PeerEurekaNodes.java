@@ -45,6 +45,10 @@ public class PeerEurekaNodes {
     private volatile List<PeerEurekaNode> peerEurekaNodes = Collections.emptyList();
     private volatile Set<String> peerEurekaNodeUrls = Collections.emptySet();
 
+    /**
+     * 定时调度线程池,
+     * 初始化{@link com.netflix.eureka.cluster.PeerEurekaNodes#start()}
+     */
     private ScheduledExecutorService taskExecutor;
 
     @Inject
@@ -73,7 +77,11 @@ public class PeerEurekaNodes {
         return serverConfig.getHealthStatusMinNumberOfAvailablePeers();
     }
 
+    /**
+     * 当前类入口
+     */
     public void start() {
+        // 初始化定时调度任务线程池
         taskExecutor = Executors.newSingleThreadScheduledExecutor(
                 new ThreadFactory() {
                     @Override
@@ -133,7 +141,7 @@ public class PeerEurekaNodes {
      * @return peer URLs with node's own URL filtered out
      */
     protected List<String> resolvePeerUrls() {
-        // 获取当前服务InstanceInfo实例信息
+        // 获取InstanceInfo服务实例信息
         InstanceInfo myInfo = applicationInfoManager.getInfo();
         // 根据当前服务所在region,获取对应region下的availability-zones，之后获取自己对应的zone
         String zone = InstanceInfo.getZone(clientConfig.getAvailabilityZones(clientConfig.getRegion()), myInfo);

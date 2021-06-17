@@ -343,6 +343,7 @@ public class DefaultEurekaClientConfig implements EurekaClientConfig {
      */
     @Override
     public String getRegion() {
+        // 读取"eureka.region"配置项,默认为 "us-east-1"
         DynamicStringProperty defaultEurekaRegion = configInstance.getStringProperty(CLIENT_REGION_FALLBACK_KEY, Values.DEFAULT_CLIENT_REGION);
         return configInstance.getStringProperty(namespace + CLIENT_REGION_KEY, defaultEurekaRegion.get()).get();
     }

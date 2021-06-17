@@ -55,6 +55,7 @@ public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig im
     private String appGrpNameFromEnv;
 
     public PropertiesInstanceConfig() {
+        // String DEFAULT_CONFIG_NAMESPACE = "eureka";
         this(CommonConstants.DEFAULT_CONFIG_NAMESPACE);
     }
 
@@ -69,7 +70,7 @@ public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig im
 
     public PropertiesInstanceConfig(String namespace, DataCenterInfo info) {
         super(info);
-
+        // namespace = "eureka.";
         this.namespace = namespace.endsWith(".")
                 ? namespace
                 : namespace + ".";
