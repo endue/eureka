@@ -67,16 +67,19 @@ public class EndpointUtils {
      * Get the list of all eureka service urls for the eureka client to talk to.
      *
      * @param clientConfig the clientConfig to use
-     * @param zone the zone in which the client resides
+     * @param zone the zone in which the client resides 服务所在的区域,多个默认返回第一个.参考com.netflix.appinfo.InstanceInfo.getZone
      * @param randomizer a randomizer to randomized returned urls, if loading from dns
+     *                   一个随机生成器随机返回的url，如果从DNS加载
      *
      * @return The list of all eureka service urls for the eureka client to talk to.
      */
     public static List<String> getDiscoveryServiceUrls(EurekaClientConfig clientConfig, String zone, ServiceUrlRandomizer randomizer) {
+        // 是否使用dns,默认false
         boolean shouldUseDns = clientConfig.shouldUseDnsForFetchingServiceUrls();
         if (shouldUseDns) {
             return getServiceUrlsFromDNS(clientConfig, zone, clientConfig.shouldPreferSameZoneEureka(), randomizer);
         }
+        // 执行这里
         return getServiceUrlsFromConfig(clientConfig, zone, clientConfig.shouldPreferSameZoneEureka());
     }
 
@@ -168,28 +171,32 @@ public class EndpointUtils {
      * Get the list of all eureka service urls from properties file for the eureka client to talk to.
      *
      * @param clientConfig the clientConfig to use
-     * @param instanceZone The zone in which the client resides
+     * @param instanceZone The zone in which the client resides 服务所在的区域,多个默认返回第一个.参考com.netflix.appinfo.InstanceInfo.getZone
      * @param preferSameZone true if we have to prefer the same zone as the client, false otherwise
      * @return The list of all eureka service urls for the eureka client to talk to
      */
     public static List<String> getServiceUrlsFromConfig(EurekaClientConfig clientConfig, String instanceZone, boolean preferSameZone) {
         List<String> orderedUrls = new ArrayList<String>();
-        // 获取当前客户端所在region
+        // 获取当前服务所在region
         String region = getRegion(clientConfig);
-        // 获取region对应的zone
+        // 获取当前服务所在region配置的zones,默认使用"default"
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         if (availZones == null || availZones.length == 0) {
             availZones = new String[1];
             availZones[0] = DEFAULT_ZONE;
         }
         logger.debug("The availability zone for the given region {} are {}", region, Arrays.toString(availZones));
+        // 获取当前服务所在zone在zones集合中的下标,前提是preferSameZone为true,这里默认为true
+        // 所以返回的下标为0
         int myZoneOffset = getZoneOffset(instanceZone, preferSameZone, availZones);
-
+        // 获取当前服务所在zone对应的service-url(可以配置多个),记录到局部遍历orderedUrls中
         List<String> serviceUrls = clientConfig.getEurekaServerServiceUrls(availZones[myZoneOffset]);
         if (serviceUrls != null) {
             orderedUrls.addAll(serviceUrls);
         }
+        // 判断不等,说明当前服务region下还配置了其他的zone
         int currentOffset = myZoneOffset == (availZones.length - 1) ? 0 : (myZoneOffset + 1);
+        // 解析当前服务其他zone对应的service-url
         while (currentOffset != myZoneOffset) {
             serviceUrls = clientConfig.getEurekaServerServiceUrls(availZones[currentOffset]);
             if (serviceUrls != null) {
@@ -205,6 +212,7 @@ public class EndpointUtils {
         if (orderedUrls.size() < 1) {
             throw new IllegalArgumentException("DiscoveryClient: invalid serviceUrl specified!");
         }
+        // 返回当前服务所有zone的service-url
         return orderedUrls;
     }
 
@@ -385,6 +393,10 @@ public class EndpointUtils {
 
     /**
      * Gets the zone to pick up for this instance.
+     * 获取此实例要提取的区域
+     * @param myZone 当前服务所在的区域,多个默认返回第一个.参考com.netflix.appinfo.InstanceInfo.getZone
+     * @param preferSameZone 是否选择和myZone相同的zone
+     * @param availZones 可以使用的zone集合
      */
     private static int getZoneOffset(String myZone, boolean preferSameZone, String[] availZones) {
         for (int i = 0; i < availZones.length; i++) {

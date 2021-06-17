@@ -133,6 +133,8 @@ public class JerseyReplicationClient extends AbstractJerseyEurekaHttpClient impl
     }
 
     public static JerseyReplicationClient createReplicationClient(EurekaServerConfig config, ServerCodecs serverCodecs, String serviceUrl) {
+        // JerseyReplicationClient: {serviceUrl}apps/:
+        // 这里可以看出serviceUrl必须以/结尾
         String name = JerseyReplicationClient.class.getSimpleName() + ": " + serviceUrl + "apps/: ";
 
         EurekaJerseyClient jerseyClient;

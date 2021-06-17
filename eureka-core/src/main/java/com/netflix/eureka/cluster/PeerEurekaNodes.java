@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Helper class to manage lifecycle of a collection of {@link PeerEurekaNode}s.
- *
+ * 管理PeerEurekaNode集合生命周期
  * @author Tomasz Bak
  */
 @Singleton
@@ -36,17 +36,34 @@ public class PeerEurekaNodes {
 
     private static final Logger logger = LoggerFactory.getLogger(PeerEurekaNodes.class);
 
+    /**
+     * 实现类默认PeerAwareInstanceRegistryImpl
+     */
     protected final PeerAwareInstanceRegistry registry;
+    /**
+     * 实现类默认 DefaultEurekaServerConfig
+     */
     protected final EurekaServerConfig serverConfig;
+    /**
+     * 实现类默认 DefaultEurekaClientConfig
+     */
     protected final EurekaClientConfig clientConfig;
+    /**
+     * 实现类默认 DefaultServerCodecs
+     */
     protected final ServerCodecs serverCodecs;
     private final ApplicationInfoManager applicationInfoManager;
-
+    /**
+     * 同一个region下不与当前服务所处同一host的zone的服务实例PeerEurekaNode
+     */
     private volatile List<PeerEurekaNode> peerEurekaNodes = Collections.emptyList();
+    /**
+     * 同一个region下不与当前服务所处同一host的zone的url
+     */
     private volatile Set<String> peerEurekaNodeUrls = Collections.emptySet();
 
     /**
-     * 定时调度线程池,
+     * 定时任务调度线程池,
      * 初始化{@link com.netflix.eureka.cluster.PeerEurekaNodes#start()}
      */
     private ScheduledExecutorService taskExecutor;
@@ -78,7 +95,17 @@ public class PeerEurekaNodes {
     }
 
     /**
-     * 当前类入口
+     * 启动入口,整合spring cloud配置如下,作用就是管理同一region下各个zone的url并创建或关闭对应的PeerEurekaNode
+     * eureka:
+     *   client:
+     *     region: bj # 配置服务所属region只能单个
+     *     availability-zones: # 配置对应region的zone,可以配置多个,默认defaultZone
+     *       bj: dx,cp  # 默认返回第一个,参考com.netflix.appinfo.InstanceInfo.getZone
+     *     service-url:
+     *       cp: http://www.baidu.com:8761/eureka/
+     *       dx: http://localhost:8762/eureka/
+     *     prefer-same-zone-eureka: true
+     *     use-dns-for-fetching-service-urls: false
      */
     public void start() {
         // 初始化定时调度任务线程池
@@ -141,14 +168,14 @@ public class PeerEurekaNodes {
      * @return peer URLs with node's own URL filtered out
      */
     protected List<String> resolvePeerUrls() {
-        // 获取InstanceInfo服务实例信息
+        // 获取InstanceInfo当前服务实例信息
         InstanceInfo myInfo = applicationInfoManager.getInfo();
-        // 根据当前服务所在region,获取对应region下的availability-zones，之后获取自己对应的zone
+        // 根据当前服务所在region,获取对应region下的zones(可以多个)，默认返回第一个zone
         String zone = InstanceInfo.getZone(clientConfig.getAvailabilityZones(clientConfig.getRegion()), myInfo);
-        // 解析当前region下所有zone对应的service-url到replicaUrls中
+        // 解析所有zones(可以多个)对应的service-url
         List<String> replicaUrls = EndpointUtils
                 .getDiscoveryServiceUrls(clientConfig, zone, new EndpointUtils.InstanceInfoBasedUrlRandomizer(myInfo));
-        // 从replicaUrls中剔除自己的url
+        // 从replicaUrls中剔除与当前服务所属同一host的url
         int idx = 0;
         while (idx < replicaUrls.size()) {
             if (isThisMyUrl(replicaUrls.get(idx))) {
@@ -165,6 +192,7 @@ public class PeerEurekaNodes {
      * create new ones.
      *
      * @param newPeerUrls peer node URLs; this collection should have local node's URL filtered out
+     *                    同一个region下不与当前服务所处同一host的zone的url
      */
     protected void updatePeerEurekaNodes(List<String> newPeerUrls) {
         if (newPeerUrls.isEmpty()) {

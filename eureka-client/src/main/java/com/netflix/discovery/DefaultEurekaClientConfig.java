@@ -357,6 +357,7 @@ public class DefaultEurekaClientConfig implements EurekaClientConfig {
     public String[] getAvailabilityZones(String region) {
         return configInstance
                 .getStringProperty(
+                        // eureka.{region}.availabilityZones
                         namespace + region + "." + CONFIG_AVAILABILITY_ZONE_PREFIX,
                         DEFAULT_ZONE).get().split(",");
     }
@@ -370,12 +371,15 @@ public class DefaultEurekaClientConfig implements EurekaClientConfig {
     @Override
     public List<String> getEurekaServerServiceUrls(String myZone) {
         String serviceUrls = configInstance.getStringProperty(
+                // eureka.serviceUrl.{myZone}
                 namespace + CONFIG_EUREKA_SERVER_SERVICE_URL_PREFIX + "." + myZone, null).get();
         if (serviceUrls == null || serviceUrls.isEmpty()) {
+            // eureka.serviceUrl.default
             serviceUrls = configInstance.getStringProperty(
                     namespace + CONFIG_EUREKA_SERVER_SERVICE_URL_PREFIX + ".default", null).get();
 
         }
+        // 多个以,分割
         if (serviceUrls != null) {
             return Arrays.asList(serviceUrls.split(","));
         }
