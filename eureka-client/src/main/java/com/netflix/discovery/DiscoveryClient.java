@@ -321,7 +321,13 @@ public class DiscoveryClient implements EurekaClient {
         transportConfig = config.getTransportConfig();
         instanceInfo = myInfo;
         if (myInfo != null) {
-            // appName默认unknown
+            /**
+             * 整合spring cloud,读取
+             * eureka:
+             *   instance:
+             *     appname: abc  # 默认UNKNOWN
+             *     instance-id: 123 # 默认 localhost:8762
+             */
             appPathIdentifier = instanceInfo.getAppName() + "/" + instanceInfo.getId();
         } else {
             logger.warn("Setting instanceInfo to a passed in null value");
