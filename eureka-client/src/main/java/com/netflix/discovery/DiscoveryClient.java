@@ -317,12 +317,12 @@ public class DiscoveryClient implements EurekaClient {
         // 获取客户端配置文件类
         clientConfig = config;
         staticClientConfig = clientConfig;
-        // 获取配置类中默认的传输配置类
+        // 获取传输配置类
         transportConfig = config.getTransportConfig();
         instanceInfo = myInfo;
         if (myInfo != null) {
             /**
-             * 整合spring cloud,读取
+             * 整合spring cloud情况下,读取
              * eureka:
              *   instance:
              *     appname: abc  # 默认UNKNOWN
@@ -363,7 +363,9 @@ public class DiscoveryClient implements EurekaClient {
         }
 
         logger.info("Initializing Eureka in region {}", clientConfig.getRegion());
-        // 不需要注册到eureka 并且 也不需要获取注册实例，则程序直接返回
+        /**
+         * 不需要注册到eureka 并且也不需要获取注册实例，则程序直接返回
+         */
         if (!config.shouldRegisterWithEureka() && !config.shouldFetchRegistry()) {
             logger.info("Client configured to neither register nor query for data.");
             scheduler = null;
@@ -412,7 +414,9 @@ public class DiscoveryClient implements EurekaClient {
             );  // use direct handoff
             // 初始化通信组件
             eurekaTransport = new EurekaTransport();
-            // 基于service-url中配置的地址，默认选择一个同zone的地址并创建registrationClient客户端和queryClient客户端
+            /**
+             * 基于service-url中配置的地址，默认选择一个同zone的地址并创建registrationClient客户端和queryClient客户端
+             */
             scheduleServerEndpointTask(eurekaTransport, args);
 
             AzToRegionMapper azToRegionMapper;
@@ -456,17 +460,18 @@ public class DiscoveryClient implements EurekaClient {
                 initTimestampMs, this.getApplications().size());
     }
 
+    /**
+     *
+     * @param eurekaTransport
+     * @param args 默认为null
+     */
     private void scheduleServerEndpointTask(EurekaTransport eurekaTransport,
                                             AbstractDiscoveryClientOptionalArgs args) {
 
             
-        Collection<?> additionalFilters = args == null
-                ? Collections.emptyList()
-                : args.additionalFilters;
+        Collection<?> additionalFilters = args == null ? Collections.emptyList() : args.additionalFilters;
 
-        EurekaJerseyClient providedJerseyClient = args == null
-                ? null
-                : args.eurekaJerseyClient;
+        EurekaJerseyClient providedJerseyClient = args == null ? null : args.eurekaJerseyClient;
         
         TransportClientFactories argsTransportClientFactories = null;
         if (args != null && args.getTransportClientFactories() != null) {
@@ -475,9 +480,7 @@ public class DiscoveryClient implements EurekaClient {
         
         // Ignore the raw types warnings since the client filter interface changed between jersey 1/2
         @SuppressWarnings("rawtypes")
-        TransportClientFactories transportClientFactories = argsTransportClientFactories == null
-                ? new Jersey1TransportClientFactories()
-                : argsTransportClientFactories;
+        TransportClientFactories transportClientFactories = argsTransportClientFactories == null ? new Jersey1TransportClientFactories() : argsTransportClientFactories;
 
         // If the transport factory was not supplied with args, assume they are using jersey 1 for passivity
         eurekaTransport.transportClientFactory = providedJerseyClient == null
@@ -499,20 +502,7 @@ public class DiscoveryClient implements EurekaClient {
             }
         };
         /**
-         *
-         *
-         * -------------------------------------------------------
-         * eurekaClient配置：
-         * server:
-         *   port: 8082
-         * spring:
-         *   application:
-         *     name: server-02
          * eureka:
-         *   instance:
-         *     hostname: localhost
-         * #  metadata-map:
-         * #    zone: bj-2
          *   client:
          *     region: shanghai # 默认us-east-1
          *     availability-zones:
@@ -521,17 +511,15 @@ public class DiscoveryClient implements EurekaClient {
          *       sh-1: http://localhost:8764/eureka,http://localhost:8765/eureka
          *       sh-2: http://localhost:8766/eureka,http://localhost:8767/eureka
          *     prefer-same-zone-eureka: true
-         * ##简单配置
-         * #eureka:
-         * #  client:
-         * #    service-url: # EurekaServer的地址，现在是自己的地址，如果是集群，需要加上其它Server的地址。
-         * #      defaultZone: http://127.0.0.1:10086/eureka
-         * #    register-with-eureka: false #不向注册中心注册自己
-         * #    fetch-registry: false  #不向注册中心拉取服务列表
-         *
+         * 简单配置
+         * eureka:
+         *   client:
+         *     service-url: # EurekaServer的地址，现在是自己的地址，如果是集群，需要加上其它Server的地址。
+         *       defaultZone: http://127.0.0.1:10086/eureka
+         *     register-with-eureka: false #不向注册中心注册自己
+         *     fetch-registry: false  #不向注册中心拉取服务列表
          */
-        // 解析zone中的service-url
-        // 并返回一个AsyncResolver，里面包含一个每5分钟执行一次的定时任务
+        // 解析zone中的service-url并返回一个AsyncResolver，里面包含一个每5分钟执行一次的定时任务
         eurekaTransport.bootstrapResolver = EurekaHttpClients.newBootstrapResolver(
                 clientConfig,
                 transportConfig,

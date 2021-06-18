@@ -19,8 +19,11 @@ package com.netflix.discovery.shared.resolver.aws;
 import java.util.Collections;
 import java.util.List;
 
+import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.EurekaClientConfig;
 import com.netflix.discovery.shared.resolver.ClusterResolver;
 import com.netflix.discovery.shared.resolver.ResolverUtils;
+import com.netflix.discovery.shared.transport.EurekaHttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,15 +31,25 @@ import org.slf4j.LoggerFactory;
  * It is a cluster resolver that reorders the server list, such that the first server on the list
  * is in the same zone as the client. The server is chosen randomly from the available pool of server in
  * that zone. The remaining servers are appended in a random order, local zone first, followed by servers from other zones.
- *
+ * 它是一个重新排序服务器列表的集群解析器，以便列表上的第一个服务器与客户机在同一个区域中。从该区域的可用服务器池中随机选择服务器。
+ * 其余的服务器按随机顺序添加，首先是本地区域，然后是其他区域的服务器。
  * @author Tomasz Bak
  */
 public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint> {
 
     private static final Logger logger = LoggerFactory.getLogger(ZoneAffinityClusterResolver.class);
-
+    /**
+     * 集群解析器，默认ConfigClusterResolver
+     * 参考{@link EurekaHttpClients#defaultBootstrapResolver(EurekaClientConfig, InstanceInfo)}
+     */
     private final ClusterResolver<AwsEndpoint> delegate;
+    /**
+     * 当前服务所属的zone
+     */
     private final String myZone;
+    /**
+     * 定义区域的亲和性(true)和非亲和性(false)
+     */
     private final boolean zoneAffinity;
 
     /**
