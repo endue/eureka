@@ -19,12 +19,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.netflix.eureka.registry.PeerAwareInstanceRegistryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for getting a count in last X milliseconds.
- *
+ * 用于获取最近sampleInterval毫秒内的计数,写死的1分钟
+ * 参考{@link PeerAwareInstanceRegistryImpl#PeerAwareInstanceRegistryImpl}
  * @author Karthik Ranganathan,Greg Kim
  */
 public class MeasuredRate {

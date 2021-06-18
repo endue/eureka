@@ -147,21 +147,15 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
 
     @Override
     public void init(PeerEurekaNodes peerEurekaNodes) throws Exception {
+        // 启动计数器
         this.numberOfReplicationsLastMin.start();
         this.peerEurekaNodes = peerEurekaNodes;
         // 初始化ResponseCache，里面有一二级缓存更新的定时任务
         initializedResponseCache();
-        // 启动定时任务，延迟15分钟，之后每15分钟一次
-        // 通过判断本地localRegionApps中缓存的服务数来更新
-        // expectedNumberOfRenewsPerMin、numberOfRenewsPerMinThreshold
+        // 启动定时任务，延迟15分钟，之后每15分钟执行一次
+        // 通过判断本地localRegionApps中缓存的服务数来更新expectedNumberOfRenewsPerMin和numberOfRenewsPerMinThreshold
         scheduleRenewalThresholdUpdateTask();
         // 初始化远程服务
-        /**
-         * 配置如下：
-         * eureka:
-         *   server:
-         *     remote-region-urls-with-name:
-         */
         initRemoteRegionRegistry();
 
         try {
@@ -196,7 +190,11 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * The renewal threshold would be used to determine if the renewals drop
      * dramatically because of network partition and to protect expiring too
      * many instances at a time.
-     *
+     * 启动定时任务,定期更新续约阈值.更新续约阈值将用于确定更新是否由于网络分区而急剧下降，并在同一时间保护太多实例的过期
+     * 默认值 15 * 60 * 1000
+     * eureka:
+     *   server:
+     *     renewal-threshold-update-interval-ms: 1000
      */
     private void scheduleRenewalThresholdUpdateTask() {
         timer.schedule(new TimerTask() {
@@ -555,6 +553,15 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             synchronized (lock) {
                 // Update threshold only if the threshold is greater than the
                 // current expected threshold of if the self preservation is disabled.
+                /**
+                 * 阈值默认0.85
+                 * 启动自我保护,默认true
+                 * eureka:
+                 *   server:
+                 *     renewal-percent-threshold: 0.85
+                 *     enable-self-preservation: true
+                 * 这里写的有bug
+                 */
                 if ((count * 2) > (serverConfig.getRenewalPercentThreshold() * numberOfRenewsPerMinThreshold)
                         || (!this.isSelfPreservationModeEnabled())) {
                     this.expectedNumberOfRenewsPerMin = count * 2;

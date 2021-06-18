@@ -112,8 +112,8 @@ public class ResponseCacheImpl implements ResponseCache {
                 }
             });
 
+    // 一级缓存
     private final ConcurrentMap<Key, Value> readOnlyCacheMap = new ConcurrentHashMap<Key, Value>();
-
     // 二级缓存
     private final LoadingCache<Key, Value> readWriteCacheMap;
     // 是否开启只读缓存，默认true
@@ -127,16 +127,34 @@ public class ResponseCacheImpl implements ResponseCache {
     ResponseCacheImpl(EurekaServerConfig serverConfig, ServerCodecs serverCodecs, AbstractInstanceRegistry registry) {
         this.serverConfig = serverConfig;
         this.serverCodecs = serverCodecs;
-        // 默认true
+        /**
+         * 是否启用一级只读缓存,默认为true
+         * eureka:
+         *   server:
+         *     use-read-only-response-cache: true
+         */
         this.shouldUseReadOnlyResponseCache = serverConfig.shouldUseReadOnlyResponseCache();
         this.registry = registry;
-        // 默认30 * 1000
+        /**
+         * 一级缓存有效期,默认30 * 1000
+         * eureka:
+         *   server:
+         *     response-cache-update-interval-ms: 1000
+         */
         long responseCacheUpdateIntervalMs = serverConfig.getResponseCacheUpdateIntervalMs();
+        // 初始化二级缓存
         this.readWriteCacheMap =
                 CacheBuilder.newBuilder().initialCapacity(1000)
-                        // getResponseCacheAutoExpirationInSeconds默认180
-                        // 也就是readWriteCacheMap中的缓存有效期为180秒
+                        /**
+                         * 二级缓存缓存有效期,默认为180秒
+                         * eureka:
+                         *   server:
+                         *     response-cache-auto-expiration-in-seconds: 1000
+                         */
                         .expireAfterWrite(serverConfig.getResponseCacheAutoExpirationInSeconds(), TimeUnit.SECONDS)
+                        /**
+                         * 当缓存被移除时的通知回调
+                         */
                         .removalListener(new RemovalListener<Key, Value>() {
                             @Override
                             public void onRemoval(RemovalNotification<Key, Value> notification) {
@@ -159,6 +177,9 @@ public class ResponseCacheImpl implements ResponseCache {
                             }
                         });
 
+        /**
+         * 启动定时任务,定时更新一级只读缓存
+          */
         if (shouldUseReadOnlyResponseCache) {
             timer.schedule(getCacheUpdateTask(),
                     new Date(((System.currentTimeMillis() / responseCacheUpdateIntervalMs) * responseCacheUpdateIntervalMs)
@@ -173,6 +194,10 @@ public class ResponseCacheImpl implements ResponseCache {
         }
     }
 
+    /**
+     * 定时更新一级只读缓存的任务
+     * @return
+     */
     private TimerTask getCacheUpdateTask() {
         return new TimerTask() {
             @Override
@@ -200,7 +225,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
     /**
      * Get the cached information about applications.
-     *
+     * 获取有关应用程序的缓存信息
      * <p>
      * If the cached information is not available it is generated on the first
      * request. After the first request, the information is then updated
@@ -243,7 +268,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
     /**
      * Invalidate the cache of a particular application.
-     *
+     * 使特定应用程序的缓存失效
      * @param appName the application name of the application.
      */
     @Override
@@ -270,7 +295,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
     /**
      * Invalidate the cache information given the list of keys.
-     *
+     * 根据键列表使缓存信息无效
      * @param keys the list of keys for which the cache information needs to be invalidated.
      */
     public void invalidate(Key... keys) {
@@ -351,6 +376,7 @@ public class ResponseCacheImpl implements ResponseCache {
     Value getValue(final Key key, boolean useReadOnlyCache) {
         Value payload = null;
         try {
+            // 启用一级只读缓存,先从一级只读缓存加载
             if (useReadOnlyCache) {
                 // 从一级缓存readOnlyCacheMap中获取
                 final Value currentPayload = readOnlyCacheMap.get(key);
@@ -362,6 +388,7 @@ public class ResponseCacheImpl implements ResponseCache {
                     payload = readWriteCacheMap.get(key);
                     readOnlyCacheMap.put(key, payload);
                 }
+            // 未启用一级只读缓存,直接从二级只读缓存加载
             } else {
                 payload = readWriteCacheMap.get(key);
             }
@@ -408,6 +435,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
     /*
      * Generate pay load for the given key.
+     * 为给定的键生成有效负载
      */
     private Value generatePayload(Key key) {
         Stopwatch tracer = null;
