@@ -77,7 +77,7 @@ public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint>
         List<AwsEndpoint> myZoneEndpoints = parts[0];
         // 与当前服务不在同zone的服务列表
         List<AwsEndpoint> remainingEndpoints = parts[1];
-        // 对myZoneEndpoints和remainingEndpoints根据当前服务IP随机打乱，之后merge到一起
+        // 对myZoneEndpoints和remainingEndpoints随机打乱，之后merge到一起
         List<AwsEndpoint> randomizedList = randomizeAndMerge(myZoneEndpoints, remainingEndpoints);
         // 排序，默认不排
         if (!zoneAffinity) {
@@ -91,6 +91,12 @@ public class ZoneAffinityClusterResolver implements ClusterResolver<AwsEndpoint>
         return randomizedList;
     }
 
+    /**
+     * 打乱myZoneEndpoints，然后在打乱remainingEndpoints，最后将打乱的remainingEndpoints添加到打乱的myZoneEndpoints中
+     * @param myZoneEndpoints
+     * @param remainingEndpoints
+     * @return
+     */
     private static List<AwsEndpoint> randomizeAndMerge(List<AwsEndpoint> myZoneEndpoints, List<AwsEndpoint> remainingEndpoints) {
         if (myZoneEndpoints.isEmpty()) {
             return ResolverUtils.randomize(remainingEndpoints);

@@ -527,7 +527,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.getInfo(),
                 applicationsSource
         );
-        // 初始化registrationClient
+        // 当前服务是否需要注册，如果需要初始化registrationClient
         if (clientConfig.shouldRegisterWithEureka()) {
             EurekaHttpClientFactory newRegistrationClientFactory = null;
             EurekaHttpClient newRegistrationClient = null;
@@ -950,7 +950,7 @@ public class DiscoveryClient implements EurekaClient {
 
     /**
      * Fetches the registry information.
-     *
+     * 获取注册表信息
      * <p>
      * This method tries to get only deltas after the first fetch unless there
      * is an issue in reconciling eureka server and client registry information.
@@ -1065,6 +1065,7 @@ public class DiscoveryClient implements EurekaClient {
      * @return the full registry information.
      * @throws Throwable
      *             on error.
+     *  从eureka服务器获取完整的注册表信息并将其存储在本地
      */
     private void getAndStoreFullRegistry() throws Throwable {
         long currentUpdateGeneration = fetchRegistryGeneration.get();

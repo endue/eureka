@@ -210,6 +210,8 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * Populates the registry information from a peer eureka node. This
      * operation fails over to other nodes until the list is exhausted if the
      * communication fails.
+     * 从对等的eureka节点填充注册表信息。
+     * 如果通信失败，此操作将转移到其他节点，直到列表耗尽。
      */
     @Override
     public int syncUp() {
@@ -217,6 +219,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         int count = 0;
         // 默认numberRegistrySyncRetries = 5
         for (int i = 0; ((i < serverConfig.getRegistrySyncRetries()) && (count == 0)); i++) {
+            // 非首次拉取其他eureka服务注册表，说明上一次失败了，默认休眠30s在拉取
             if (i > 0) {
                 try {
                     // 30 * 1000
@@ -619,7 +622,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
 
     /**
      * Checks if an instance is registerable in this region. Instances from other regions are rejected.
-     *
+     * 检查实例是否可在此区域中注册。拒绝来自其他区域的实例
      * @param instanceInfo  th instance info information of the instance
      * @return true, if it can be registered in this server, false otherwise.
      */
