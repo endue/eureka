@@ -408,6 +408,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     }
 
     /**
+     * 注册服务入口
      * Registers the information about the {@link InstanceInfo} and replicates
      * this information to all peer eureka nodes. If this is replication event
      * from other replica nodes then it is not replicated.
@@ -420,11 +421,21 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      */
     @Override
     public void register(final InstanceInfo info, final boolean isReplication) {
+        // 默认的租约时间90s
         int leaseDuration = Lease.DEFAULT_DURATION_IN_SECS;
+        // 如果服务有自己的租约信息并且配置了租约时间
+        /**
+         * 正好springcloud配置如下
+         * eureka:
+         *   instance:
+         *     lease-expiration-duration-in-seconds: 100
+         */
         if (info.getLeaseInfo() != null && info.getLeaseInfo().getDurationInSecs() > 0) {
             leaseDuration = info.getLeaseInfo().getDurationInSecs();
         }
+        // 调用父类register()注册服务
         super.register(info, leaseDuration, isReplication);
+        // 将注册服务复制给集群中其他节点
         replicateToPeers(Action.Register, info.getAppName(), info.getId(), info, null, isReplication);
     }
 
@@ -643,7 +654,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     /**
      * Replicates all eureka actions to peer eureka nodes except for replication
      * traffic to this node.
-     *
+     * 将节点线程传递给其他节点
      */
     private void replicateToPeers(Action action, String appName, String id,
                                   InstanceInfo info /* optional */,
@@ -654,6 +665,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 numberOfReplicationsLastMin.increment();
             }
             // If it is a replication already, do not replicate again as this will create a poison replication
+            // 如果当前集群中没有其他节点或者isReplication为true也就是这是一个复制消息,那么就不需要传递给其他节点了
             if (peerEurekaNodes == Collections.EMPTY_LIST || isReplication) {
                 return;
             }

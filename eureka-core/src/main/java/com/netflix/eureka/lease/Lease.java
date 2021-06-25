@@ -41,9 +41,18 @@ public class Lease<T> {
     private T holder;// 记录的InstanceInfo
     private long evictionTimestamp;// 记录服务下线时间戳
     private long registrationTimestamp;
+    /**
+     * 租约服务UP时间戳
+     */
     private long serviceUpTimestamp;
     // Make it volatile so that the expiration task would see this quicker
-    private volatile long lastUpdateTimestamp;// 服务续约时更新此时间
+    /**
+     * 服务续约和首次构建租约信息时更新此时间
+     */
+    private volatile long lastUpdateTimestamp;
+    /**
+     * 服务租约有效期
+     */
     private long duration;// 默认90
 
     public Lease(T r, int durationInSecs) {

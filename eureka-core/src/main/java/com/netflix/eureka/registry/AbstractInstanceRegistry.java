@@ -76,6 +76,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     private static final Logger logger = LoggerFactory.getLogger(AbstractInstanceRegistry.class);
 
     private static final String[] EMPTY_STR_ARRAY = new String[0];
+    /**
+     * 保留注册的服务
+     * key是appname,keys是instanceId
+     */
     private final ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>> registry
             = new ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>();
     protected Map<String, RemoteRegionRegistry> regionNameVSRemoteRegistry = new HashMap<String, RemoteRegionRegistry>();
@@ -85,8 +89,17 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             .<String, InstanceStatus>build().asMap();
 
     // CircularQueues here for debugging/statistics purposes only
+    /**
+     * 记录当前最近注册的服务
+     * 参考{@link com.netflix.eureka.registry.AbstractInstanceRegistry#register}
+     * key是当前时间戳System.currentTimeMillis()
+     * value是服务registrant.getAppName() + "(" + registrant.getId() + ")"
+     */
     private final CircularQueue<Pair<Long, String>> recentRegisteredQueue;
     private final CircularQueue<Pair<Long, String>> recentCanceledQueue;
+    /**
+     * 记录最近改变的服务
+     */
     private ConcurrentLinkedQueue<RecentlyChangedItem> recentlyChangedQueue = new ConcurrentLinkedQueue<RecentlyChangedItem>();
 
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -215,7 +228,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             // 通过服务ID获取注册的服务
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
-            // 如果已经有租约，保留最后一个脏时间戳而不覆盖它
+            // 如果注册的服务已经有租约信息,说明是再次注册
             if (existingLease != null && (existingLease.getHolder() != null)) {
 
                 Long existingLastDirtyTimestamp = existingLease.getHolder().getLastDirtyTimestamp();
@@ -245,14 +258,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
                 logger.debug("No previous lease information found; it is new registration");
             }
+            // 构建注册服务租约信息
             Lease<InstanceInfo> lease = new Lease<InstanceInfo>(registrant, leaseDuration);
-            // 非新增服务，修改启动时间戳
+            // 判断是否为旧服务再次注册，如果是修改启动时间戳
             if (existingLease != null) {
                 lease.setServiceUpTimestamp(existingLease.getServiceUpTimestamp());
             }
             // 记录到gMap
             gMap.put(registrant.getId(), lease);
-            // 将当前服务保存到最近注册的队列中
+            // 将注册服务保存到最近注册的队列中
             synchronized (recentRegisteredQueue) {
                 recentRegisteredQueue.add(new Pair<Long, String>(
                         System.currentTimeMillis(),
@@ -278,6 +292,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             registrant.setStatusWithoutDirty(overriddenInstanceStatus);
 
             // If the lease is registered with UP status, set lease service up timestamp
+            // 如果注册服务状态为UP,那么判断serviceUpTimestamp是否为0,如果是则设置为当前时间
             if (InstanceStatus.UP.equals(registrant.getStatus())) {
                 lease.serviceUp();
             }
