@@ -160,6 +160,7 @@ public class ApplicationsResource {
     }
 
     /**
+     * 增量抓取服务注册列表
      * Get information about all delta changes in {@link com.netflix.discovery.shared.Applications}.
      *
      * <p>

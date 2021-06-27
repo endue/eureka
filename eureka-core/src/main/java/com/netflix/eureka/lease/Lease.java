@@ -39,7 +39,13 @@ public class Lease<T> {
     public static final int DEFAULT_DURATION_IN_SECS = 90;
 
     private T holder;// 记录的InstanceInfo
-    private long evictionTimestamp;// 记录服务下线时间戳
+    /**
+     * 记录服务下线时间戳
+     */
+    private long evictionTimestamp;
+    /**
+     * 记录服务注册时间戳
+     */
     private long registrationTimestamp;
     /**
      * 租约服务UP时间戳

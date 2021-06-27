@@ -96,9 +96,16 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      * value是服务registrant.getAppName() + "(" + registrant.getId() + ")"
      */
     private final CircularQueue<Pair<Long, String>> recentRegisteredQueue;
+    /**
+     * 记录当前最后取消的服务实例
+     * 参考{@link AbstractInstanceRegistry#internalCancel}
+     * key是当前时间戳System.currentTimeMillis()
+     * value是服务registrant.getAppName() + "(" + registrant.getId() + ")"
+     */
     private final CircularQueue<Pair<Long, String>> recentCanceledQueue;
     /**
      * 记录最近改变的服务
+     * 参考{@link com.netflix.eureka.registry.AbstractInstanceRegistry#register}
      */
     private ConcurrentLinkedQueue<RecentlyChangedItem> recentlyChangedQueue = new ConcurrentLinkedQueue<RecentlyChangedItem>();
 
@@ -388,16 +395,19 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      */
     public boolean renew(String appName, String id, boolean isReplication) {
         RENEW.increment(isReplication);
+        // 获取服务名下的所有服务实例列表
         Map<String, Lease<InstanceInfo>> gMap = registry.get(appName);
         Lease<InstanceInfo> leaseToRenew = null;
         if (gMap != null) {
             leaseToRenew = gMap.get(id);
         }
+        // 如果没有找到返回false
         if (leaseToRenew == null) {
             RENEW_NOT_FOUND.increment(isReplication);
             logger.warn("DS: Registry: lease doesn't exist, registering resource: {} - {}", appName, id);
             return false;
         } else {
+            // 获取注册的服务实例信息
             InstanceInfo instanceInfo = leaseToRenew.getHolder();
             if (instanceInfo != null) {
                 // touchASGCache(instanceInfo.getASGName());
@@ -1248,6 +1258,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         responseCache.invalidate(appName, vipAddress, secureVipAddress);
     }
 
+    /**
+     * 记录最后发送变化的实例
+     */
     private static final class RecentlyChangedItem {
         private long lastUpdateTime;
         private Lease<InstanceInfo> leaseInfo;

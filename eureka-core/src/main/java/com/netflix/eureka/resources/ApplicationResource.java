@@ -72,13 +72,14 @@ public class ApplicationResource {
     }
 
     /**
+     * 增量抓取服务注册列表
      * Gets information about a particular {@link com.netflix.discovery.shared.Application}.
      *
      * @param version
      *            the version of the request.
      * @param acceptHeader
      *            the accept header of the request to indicate whether to serve
-     *            JSON or XML data.
+     *            JSON or XML data
      * @return the response containing information about a particular
      *         application.
      */
@@ -130,6 +131,7 @@ public class ApplicationResource {
     }
 
     /**
+     * 服务注册接口
      * Registers information about a particular instance for an
      * {@link com.netflix.discovery.shared.Application}.
      *
