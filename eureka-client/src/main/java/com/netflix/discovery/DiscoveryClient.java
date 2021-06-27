@@ -151,7 +151,19 @@ public class DiscoveryClient implements EurekaClient {
     private final AtomicLong fetchRegistryGeneration;
     private final ApplicationInfoManager applicationInfoManager;
     private final InstanceInfo instanceInfo;
+    /**
+     * 记录如下配置项的值
+     * eureka:
+     *   client:
+     *     fetch-remote-regions-registry:
+     */
     private final AtomicReference<String> remoteRegionsToFetch;
+    /**
+     * 记录如下配置项根据,分割后的值
+     * eureka:
+     *   client:
+     *     fetch-remote-regions-registry:
+     */
     private final AtomicReference<String[]> remoteRegionsRef;
     private final InstanceRegionChecker instanceRegionChecker;
 
@@ -468,17 +480,18 @@ public class DiscoveryClient implements EurekaClient {
     private void scheduleServerEndpointTask(EurekaTransport eurekaTransport,
                                             AbstractDiscoveryClientOptionalArgs args) {
 
-            
+        // additionalFilters初始化为Collections.emptyList()
         Collection<?> additionalFilters = args == null ? Collections.emptyList() : args.additionalFilters;
-
+        // providedJerseyClient初始化为null
         EurekaJerseyClient providedJerseyClient = args == null ? null : args.eurekaJerseyClient;
-        
+        // argsTransportClientFactories初始化为null
         TransportClientFactories argsTransportClientFactories = null;
         if (args != null && args.getTransportClientFactories() != null) {
             argsTransportClientFactories = args.getTransportClientFactories();
         }
         
         // Ignore the raw types warnings since the client filter interface changed between jersey 1/2
+        // transportClientFactories初始化为Jersey1TransportClientFactories
         @SuppressWarnings("rawtypes")
         TransportClientFactories transportClientFactories = argsTransportClientFactories == null ? new Jersey1TransportClientFactories() : argsTransportClientFactories;
 
@@ -532,11 +545,13 @@ public class DiscoveryClient implements EurekaClient {
             EurekaHttpClientFactory newRegistrationClientFactory = null;
             EurekaHttpClient newRegistrationClient = null;
             try {
+                // 调用底层的canonicalClientFactory(EurekaClientNames.REGISTRATION, transportConfig, bootstrapResolver, transportClientFactory);
                 newRegistrationClientFactory = EurekaHttpClients.registrationClientFactory(
                         eurekaTransport.bootstrapResolver,
                         eurekaTransport.transportClientFactory,
                         transportConfig
                 );
+                // 实现类SessionedEurekaHttpClient
                 newRegistrationClient = newRegistrationClientFactory.newClient();
             } catch (Exception e) {
                 logger.warn("Transport initialization failure", e);
@@ -547,11 +562,12 @@ public class DiscoveryClient implements EurekaClient {
 
         // new method (resolve from primary servers for read)
         // Configure new transport layer (candidate for injecting in the future)
-        // 初始化queryClient
+        // 当前服务是否需要拉取注册列表,如果需要初始化queryClient
         if (clientConfig.shouldFetchRegistry()) {
             EurekaHttpClientFactory newQueryClientFactory = null;
             EurekaHttpClient newQueryClient = null;
             try {
+                // 调用底层的canonicalClientFactory(EurekaClientNames.QUERY, transportConfig, queryResolver, transportClientFactory)
                 newQueryClientFactory = EurekaHttpClients.queryClientFactory(
                         eurekaTransport.bootstrapResolver,
                         eurekaTransport.transportClientFactory,
@@ -560,6 +576,7 @@ public class DiscoveryClient implements EurekaClient {
                         applicationInfoManager.getInfo(),
                         applicationsSource
                 );
+                // 实现类SessionedEurekaHttpClient
                 newQueryClient = newQueryClientFactory.newClient();
             } catch (Exception e) {
                 logger.warn("Transport initialization failure", e);
@@ -1292,9 +1309,13 @@ public class DiscoveryClient implements EurekaClient {
         // 是否需要获取注册列表,默认true
         if (clientConfig.shouldFetchRegistry()) {
             // registry cache refresh timer
-            // 默认30
+            /**
+             * 默认30和10
+             * client:
+             * 	registry-fetch-interval-seconds: 30
+             * 	cache-refresh-executor-exponential-back-off-bound: 10
+             */
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
-            // 10
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
             // 启动刷新本地缓存localRegionApps的任务,每30s执行一次
             scheduler.schedule(
@@ -1311,9 +1332,12 @@ public class DiscoveryClient implements EurekaClient {
         }
         // 是否需要注册到eurekaServer,默认true
         if (clientConfig.shouldRegisterWithEureka()) {
-            // 默认30
             int renewalIntervalInSecs = instanceInfo.getLeaseInfo().getRenewalIntervalInSecs();
-            // 默认10
+            /**
+             * 默认10
+             * client:
+             * 	heartbeat-executor-exponential-back-off-bound: 10
+             */
             int expBackOffBound = clientConfig.getHeartbeatExecutorExponentialBackOffBound();
             logger.info("Starting heartbeat executor: " + "renew interval is: " + renewalIntervalInSecs);
 
@@ -1356,11 +1380,11 @@ public class DiscoveryClient implements EurekaClient {
                     instanceInfoReplicator.onDemandUpdate();
                 }
             };
-
+            // 默认为true
             if (clientConfig.shouldOnDemandUpdateStatusChange()) {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
-            // 里面包含一个40s执行一次的定时任务
+            // 里面首先调用setIsDirty方法,然后启动一个40s执行一次的定时任务
             // 判断自身状态，如果发生变更则注册到eurekaServer
             instanceInfoReplicator.start(clientConfig.getInitialInstanceInfoReplicationIntervalSeconds());
         } else {
@@ -1501,10 +1525,12 @@ public class DiscoveryClient implements EurekaClient {
 
             // 判断remoteRegionsToFetch中值是否为null
             boolean isFetchingRemoteRegionRegistries = isFetchingRemoteRegionRegistries();
-
             boolean remoteRegionsModified = false;
-            // This makes sure that a dynamic change to remote regions to fetch is honored.
-            // 获取eureka.fetchRemoteRegionsRegistry 配置的值，默认null
+            /**
+             * 解析的如下配置的值,默认为null
+             * client:
+             *   fetch-remote-regions-registry:
+             */
             String latestRemoteRegions = clientConfig.fetchRegistryForRemoteRegions();
             if (null != latestRemoteRegions) {
                 // 获取当前保存的eureka.fetchRemoteRegionsRegistry的值

@@ -137,6 +137,9 @@ public class InstanceInfo {
     private volatile InstanceStatus status = InstanceStatus.UP;
     private volatile InstanceStatus overriddenstatus = InstanceStatus.UNKNOWN;
     @XStreamOmitField
+    /**
+     * 记录当前服务是否发生变更了
+     */
     private volatile boolean isInstanceInfoDirty = false;
     private volatile LeaseInfo leaseInfo;
     @Auto
@@ -144,6 +147,9 @@ public class InstanceInfo {
     @XStreamAlias("metadata")
     private volatile Map<String, String> metadata = new ConcurrentHashMap<String, String>();
     @Auto
+    /**
+     * 当前服务发生变更的时间戳
+     */
     private volatile Long lastUpdatedTimestamp = System.currentTimeMillis();
     @Auto
     private volatile Long lastDirtyTimestamp = System.currentTimeMillis();
