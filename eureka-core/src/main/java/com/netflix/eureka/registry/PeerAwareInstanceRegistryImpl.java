@@ -114,9 +114,18 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         }
     };
 
+    /**
+     * 每分钟统计一次
+     * 初始化参考{@link PeerAwareInstanceRegistryImpl#PeerAwareInstanceRegistryImpl}
+     * 修改方法参考{@link PeerAwareInstanceRegistryImpl#replicateToPeers}
+     */
     private final MeasuredRate numberOfReplicationsLastMin;
 
     protected final EurekaClient eurekaClient;
+    /**
+     * 集群中eurekaServer服务注册列表
+     * 初始化参考{@link PeerAwareInstanceRegistryImpl#init}
+     */
     protected volatile PeerEurekaNodes peerEurekaNodes;
 
     private final InstanceStatusOverrideRule instanceStatusOverrideRule;
@@ -575,7 +584,6 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                  *   server:
                  *     renewal-percent-threshold: 0.85
                  *     enable-self-preservation: true
-                 * 这里写的有bug
                  */
                 if ((count * 2) > (serverConfig.getRenewalPercentThreshold() * numberOfRenewsPerMinThreshold)
                         || (!this.isSelfPreservationModeEnabled())) {

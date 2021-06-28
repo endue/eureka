@@ -116,12 +116,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
     private Timer deltaRetentionTimer = new Timer("Eureka-DeltaRetentionTimer", true);
     private Timer evictionTimer = new Timer("Eureka-EvictionTimer", true);
+    /**
+     * 定时任务，每一分钟执行一次，记录上一分钟收到的心跳数
+     */
     private final MeasuredRate renewsLastMin;
 
     private final AtomicReference<EvictionTask> evictionTaskRef = new AtomicReference<EvictionTask>();
 
     protected String[] allKnownRemoteRegions = EMPTY_STR_ARRAY;
-    // 每分钟的心跳次数
+    // 每分钟的心跳次数阈值
     protected volatile int numberOfRenewsPerMinThreshold;
     // 期望的每分钟心跳次数
     protected volatile int expectedNumberOfRenewsPerMin;
