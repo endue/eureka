@@ -137,14 +137,26 @@ public class DiscoveryClient implements EurekaClient {
      * - updating service urls
      * - scheduling a TimedSuperVisorTask
      */
+    /**
+     * 任务调度线程池
+     */
     private final ScheduledExecutorService scheduler;
     // additional executors for supervised subtasks
+    /**
+     * 心跳任务线程池
+     */
     private final ThreadPoolExecutor heartbeatExecutor;
+    /**
+     * 刷新本地缓存线程池
+     */
     private final ThreadPoolExecutor cacheRefreshExecutor;
 
     private final Provider<HealthCheckHandler> healthCheckHandlerProvider;
     private final Provider<HealthCheckCallback> healthCheckCallbackProvider;
     private final PreRegistrationHandler preRegistrationHandler;
+    /**
+     * 记录从Eureka Server返回的所有注册的服务实例
+     */
     private final AtomicReference<Applications> localRegionApps = new AtomicReference<Applications>();
     private final Lock fetchRegistryUpdateLock = new ReentrantLock();
     // monotonically increasing generation counter to ensure stale threads do not reset registry to an older version
@@ -309,6 +321,13 @@ public class DiscoveryClient implements EurekaClient {
         });
     }
 
+    /**
+     *
+     * @param applicationInfoManager
+     * @param config
+     * @param args 默认为null
+     * @param backupRegistryProvider
+     */
     @Inject
     DiscoveryClient(ApplicationInfoManager applicationInfoManager, EurekaClientConfig config, AbstractDiscoveryClientOptionalArgs args,
                     Provider<BackupRegistry> backupRegistryProvider) {
@@ -324,12 +343,12 @@ public class DiscoveryClient implements EurekaClient {
         }
         // 获取当前服务实例管理器
         this.applicationInfoManager = applicationInfoManager;
-        // 获取自己的服务实例instanceInfo
+        // 获取当前服务实例信息instanceInfo
         InstanceInfo myInfo = applicationInfoManager.getInfo();
         // 获取客户端配置文件类
         clientConfig = config;
         staticClientConfig = clientConfig;
-        // 获取传输配置类
+        // 获取传输配置类，默认DefaultEurekaTransportConfig
         transportConfig = config.getTransportConfig();
         instanceInfo = myInfo;
         if (myInfo != null) {
@@ -348,7 +367,7 @@ public class DiscoveryClient implements EurekaClient {
         this.backupRegistryProvider = backupRegistryProvider;
 
         this.urlRandomizer = new EndpointUtils.InstanceInfoBasedUrlRandomizer(instanceInfo);
-        // eurekaClient初始化一个Applications，保存自己本地缓存的所有服务
+        // eurekaClient初始化一个Applications
         localRegionApps.set(new Applications());
 
         fetchRegistryGeneration = new AtomicLong(0);
@@ -858,6 +877,7 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * eureka client 服务注册
      * Register with the eureka service by making the appropriate REST call.
      */
     boolean register() throws Throwable {
