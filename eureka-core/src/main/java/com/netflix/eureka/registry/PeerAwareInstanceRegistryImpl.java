@@ -235,6 +235,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 for (InstanceInfo instance : app.getInstances()) {
                     try {
                         if (isRegisterable(instance)) {
+                            // 注册到本地服务实例列表中
                             register(instance, instance.getLeaseInfo().getDurationInSecs(), true);
                             count++;
                         }

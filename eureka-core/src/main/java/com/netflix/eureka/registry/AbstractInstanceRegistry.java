@@ -1312,7 +1312,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     }
 
     /* visible for testing */ class EvictionTask extends TimerTask {
-
+        /**
+         * 上次运行的时间戳
+         */
         private final AtomicLong lastExecutionNanosRef = new AtomicLong(0l);
 
         @Override
