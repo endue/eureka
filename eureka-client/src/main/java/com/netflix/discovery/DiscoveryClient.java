@@ -197,7 +197,14 @@ public class DiscoveryClient implements EurekaClient {
     private final long initTimestampMs;
 
     private static final class EurekaTransport {
+        /**
+         * AsyncResolver
+         * 初始化参考{@link EurekaHttpClients#defaultBootstrapResolver}
+         */
         private ClosableResolver bootstrapResolver;
+        /**
+         * Jersey1TransportClientFactories
+         */
         private TransportClientFactory transportClientFactory;
 
         private EurekaHttpClient registrationClient;
