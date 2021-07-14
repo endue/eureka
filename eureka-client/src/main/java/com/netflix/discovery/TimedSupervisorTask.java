@@ -32,10 +32,13 @@ public class TimedSupervisorTask extends TimerTask {
 
     private final ScheduledExecutorService scheduler;
     private final ThreadPoolExecutor executor;
+    // 超时时间
     private final long timeoutMillis;
+    // 任务
     private final Runnable task;
-
+    // 保存延迟时间
     private final AtomicLong delay;
+    // 保存最大延迟时间
     private final long maxDelay;
 
     public TimedSupervisorTask(String name, ScheduledExecutorService scheduler, ThreadPoolExecutor executor,

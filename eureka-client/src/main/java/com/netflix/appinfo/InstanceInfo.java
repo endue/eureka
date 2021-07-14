@@ -139,8 +139,12 @@ public class InstanceInfo {
     @XStreamOmitField
     /**
      * 记录当前服务是否发生变更了
+     * 参考{@link InstanceInfo#unsetIsDirty(long)} 发送心跳成功后会调用该方法
      */
     private volatile boolean isInstanceInfoDirty = false;
+    /**
+     * 服务实例信息
+     */
     private volatile LeaseInfo leaseInfo;
     @Auto
     private volatile Boolean isCoordinatingDiscoveryServer = Boolean.FALSE;

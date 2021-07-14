@@ -47,7 +47,9 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
         if (instanceInfo == null) {
             // Build the lease information to be passed to the server based on config
             LeaseInfo.Builder leaseInfoBuilder = LeaseInfo.Builder.newBuilder()
+                    // 获取实例续约的间隔时间,多久续约一次,默认30s
                     .setRenewalIntervalInSecs(config.getLeaseRenewalIntervalInSeconds())
+                    // 获取实例续约的有效时间,续约一次多长时间内有效,默认90s
                     .setDurationInSecs(config.getLeaseExpirationDurationInSeconds());
 
             if (vipAddressResolver == null) {
@@ -80,7 +82,18 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
             if (defaultAddress == null || defaultAddress.isEmpty()) {
                 defaultAddress = config.getIpAddress();
             }
-
+            /**
+             * 如需修改配置，在springcloud中如下修改
+             * eureka:
+             *   instance:
+             *     lease-expiration-duration-in-seconds: 90
+             *     lease-renewal-interval-in-seconds: 30
+             *     namespace:
+             *     instance-id:
+             *     appname:
+             *     app-group-name:
+             *     ip-address:
+             */
             builder.setNamespace(config.getNamespace())
                     .setInstanceId(instanceId)
                     .setAppName(config.getAppname())
