@@ -419,6 +419,7 @@ public class DiscoveryClient implements EurekaClient {
 
             // This is a bit of hack to allow for existing code using DiscoveryManager.getInstance()
             // to work with DI'd DiscoveryClient
+            // 返回前将当前DiscoveryClient和对应的配置设置到DiscoveryManager中
             DiscoveryManager.getInstance().setDiscoveryClient(this);
             DiscoveryManager.getInstance().setEurekaClientConfig(config);
 
@@ -495,6 +496,7 @@ public class DiscoveryClient implements EurekaClient {
 
         // This is a bit of hack to allow for existing code using DiscoveryManager.getInstance()
         // to work with DI'd DiscoveryClient
+        // 最后将当前DiscoveryClient和对应的配置设置到DiscoveryManager中
         DiscoveryManager.getInstance().setDiscoveryClient(this);
         DiscoveryManager.getInstance().setEurekaClientConfig(config);
 
@@ -984,6 +986,7 @@ public class DiscoveryClient implements EurekaClient {
 
     /**
      * unregister w/ the eureka service.
+     * 服务下线
      */
     void unregister() {
         // It can be null if shouldRegisterWithEureka == false
@@ -1432,8 +1435,13 @@ public class DiscoveryClient implements EurekaClient {
             if (clientConfig.shouldOnDemandUpdateStatusChange()) {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
-            // 里面首先调用setIsDirty方法,然后启动一个40s执行一次的定时任务
-            // 判断自身状态，如果发生变更则注册到eurekaServer
+            /**
+             * 里面首先调用setIsDirty方法,然后启动一个40s执行一次的定时任务
+             * 判断自身状态，如果发生变更则注册到eurekaServer
+             * eureka:
+             *   client:
+             *     instance-info-replication-interval-seconds:
+             */
             instanceInfoReplicator.start(clientConfig.getInitialInstanceInfoReplicationIntervalSeconds());
         } else {
             logger.info("Not registering with Eureka server per configuration");
