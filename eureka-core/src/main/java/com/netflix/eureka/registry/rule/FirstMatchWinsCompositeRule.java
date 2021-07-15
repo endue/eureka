@@ -18,6 +18,10 @@ public class FirstMatchWinsCompositeRule implements InstanceStatusOverrideRule {
     private final InstanceStatusOverrideRule defaultRule;
     private final String compositeRuleName;
 
+    /**
+     * PeerAwareInstanceRegistryImpl中初始化为new DownOrStartingRule(),new OverrideExistsRule(overriddenInstanceStatusMap), new LeaseExistsRule()
+     * @param rules
+     */
     public FirstMatchWinsCompositeRule(InstanceStatusOverrideRule... rules) {
         this.rules = rules;
         this.defaultRule = new AlwaysMatchInstanceStatusRule();

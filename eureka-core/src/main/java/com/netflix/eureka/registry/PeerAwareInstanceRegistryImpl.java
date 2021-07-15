@@ -666,7 +666,14 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     /**
      * Replicates all eureka actions to peer eureka nodes except for replication
      * traffic to this node.
-     * 将节点线程传递给其他节点
+     * 在cancel()、register()、renew()、statusUpdate()、delteStatusOverride()时都会调用到
+     * 将节点线程复制给集群中其他eurekaServer
+     * @param action  服务实例的动作： Heartbeat, Register, Cancel, StatusUpdate, DeleteStatusOverride
+     * @param appName
+     * @param id
+     * @param info
+     * @param newStatus
+     * @param isReplication
      */
     private void replicateToPeers(Action action, String appName, String id,
                                   InstanceInfo info /* optional */,

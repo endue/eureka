@@ -233,7 +233,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
              * 整合springcloud
              * eureka:
              *   instance:
-             *     appname: user
+             *     appname:
              *     instance-id: fj2eifjwe
              */
             Map<String, Lease<InstanceInfo>> gMap = registry.get(registrant.getAppName());
@@ -279,7 +279,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
                 logger.debug("No previous lease information found; it is new registration");
             }
-            // 构建注册服务租约信息
+            // 封装注册服务为租约信息对象
             Lease<InstanceInfo> lease = new Lease<InstanceInfo>(registrant, leaseDuration);
             // 判断是否为旧服务再次注册，如果是修改启动时间戳
             if (existingLease != null) {
@@ -293,14 +293,14 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                         registrant.getAppName() + "(" + registrant.getId() + ")"));
             }
             // This is where the initial state transfer of overridden status happens
-            // registrant.getOverriddenStatus()默认为UNKNOWN
-            // 参考com.netflix.appinfo.providers.EurekaConfigBasedInstanceInfoProvider.get
 
-            // 注册的服务的OverriddenStatus不为UNKNOWN
+            // registrant.getOverriddenStatus()默认为UNKNOWN，参考com.netflix.appinfo.providers.EurekaConfigBasedInstanceInfoProvider.get
+
+            // 判断注册的服务OverriddenStatus属性是否不为UNKNOWN
             if (!InstanceStatus.UNKNOWN.equals(registrant.getOverriddenStatus())) {
                 logger.debug("Found overridden status {} for instance {}. Checking to see if needs to be add to the "
                                 + "overrides", registrant.getOverriddenStatus(), registrant.getId());
-                // 不包含在overriddenInstanceStatusMap中则添加,如果已经包含则不处理
+                // OverriddenStatus属性不为null并且当前服务实例ID不包含在overriddenInstanceStatusMap中则添加,如果已经包含则不处理
                 if (!overriddenInstanceStatusMap.containsKey(registrant.getId())) {
                     logger.info("Not found overridden id {} and hence adding it", registrant.getId());
                     overriddenInstanceStatusMap.put(registrant.getId(), registrant.getOverriddenStatus());
@@ -314,7 +314,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             }
 
             // Set the status based on the overridden status rules
-            // 根据覆盖状态规则设置注册服务的status,
+            // 根据OverriddenStatus规则设置注册服务当前的status,
             InstanceStatus overriddenInstanceStatus = getOverriddenInstanceStatus(registrant, existingLease, isReplication);
             registrant.setStatusWithoutDirty(overriddenInstanceStatus);
 
@@ -323,11 +323,12 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             if (InstanceStatus.UP.equals(registrant.getStatus())) {
                 lease.serviceUp();
             }
+            // 设置服务注册服务实例当前的动作
             registrant.setActionType(ActionType.ADDED);
             // 将当前服务记录到最近改变服务队列recentlyChangedQueue中
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             registrant.setLastUpdatedTimestamp();
-            // 更新自己缓存
+            // 清空二级缓存中当前服务实例的信息
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
                     registrant.getAppName(), registrant.getId(), registrant.getStatus(), isReplication);

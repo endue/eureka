@@ -268,7 +268,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
     /**
      * Invalidate the cache of a particular application.
-     * 使特定应用程序的缓存失效
+     * 清空二级缓存中某服务实例的数据
      * @param appName the application name of the application.
      */
     @Override
@@ -295,7 +295,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
     /**
      * Invalidate the cache information given the list of keys.
-     * 根据键列表使缓存信息无效
+     * 根据键列表使二级缓存信息无效
      * @param keys the list of keys for which the cache information needs to be invalidated.
      */
     public void invalidate(Key... keys) {

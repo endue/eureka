@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 此规则匹配实例状态为DOWN或者STARTING
  * This rule matches if the instance is DOWN or STARTING.
  *
  * Created by Nikos Michalakis on 7/13/16.
