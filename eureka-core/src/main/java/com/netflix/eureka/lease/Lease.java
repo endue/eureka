@@ -38,7 +38,10 @@ public class Lease<T> {
 
     public static final int DEFAULT_DURATION_IN_SECS = 90;
 
-    private T holder;// 记录的InstanceInfo
+    /**
+     * 记录的InstanceInfo服务实例信息
+     */
+    private T holder;
     /**
      * 记录服务下线时间戳
      */
