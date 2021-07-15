@@ -77,12 +77,17 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
     private static final String[] EMPTY_STR_ARRAY = new String[0];
     /**
-     * 保留注册的服务
-     * key是appname,keys是instanceId
+     * 存储注册的服务
+     * 外层map的key是appname,内层map的key是instanceId
      */
     private final ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>> registry
             = new ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>();
     protected Map<String, RemoteRegionRegistry> regionNameVSRemoteRegistry = new HashMap<String, RemoteRegionRegistry>();
+    /**
+     * 存储覆盖状态，大小500，有效期1小时
+     * key是instanceId
+     * 作用参考{@link https://blog.csdn.net/ai_xiangjuan/article/details/80344491}
+     */
     protected final ConcurrentMap<String, InstanceStatus> overriddenInstanceStatusMap = CacheBuilder
             .newBuilder().initialCapacity(500)
             .expireAfterAccess(1, TimeUnit.HOURS)
@@ -116,12 +121,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
     private Timer deltaRetentionTimer = new Timer("Eureka-DeltaRetentionTimer", true);
     private Timer evictionTimer = new Timer("Eureka-EvictionTimer", true);
+    /**
+     * 定时任务，每一分钟执行一次，记录上一分钟收到的心跳数
+     */
     private final MeasuredRate renewsLastMin;
 
     private final AtomicReference<EvictionTask> evictionTaskRef = new AtomicReference<EvictionTask>();
 
     protected String[] allKnownRemoteRegions = EMPTY_STR_ARRAY;
-    // 每分钟的心跳次数
+    // 每分钟的心跳次数阈值
     protected volatile int numberOfRenewsPerMinThreshold;
     // 期望的每分钟心跳次数
     protected volatile int expectedNumberOfRenewsPerMin;
@@ -211,17 +219,23 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      * Registers a new instance with a given duration.
      *
      * @see com.netflix.eureka.lease.LeaseManager#register(java.lang.Object, int, boolean)
-     * @param registrant 服务实例
+     * @param registrant 注册服务实例
      * @param leaseDuration 续约时间，默认续约90s
-     * @param isReplication
+     * @param isReplication 是否来自其他eureka server
      */
 
     public void register(InstanceInfo registrant, int leaseDuration, boolean isReplication) {
         try {
             // 读锁
             read.lock();
-            // registry是ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>
             // 通过app名称获取实例列表
+            /**
+             * 整合springcloud
+             * eureka:
+             *   instance:
+             *     appname: user
+             *     instance-id: fj2eifjwe
+             */
             Map<String, Lease<InstanceInfo>> gMap = registry.get(registrant.getAppName());
             REGISTER.increment(isReplication);
             // 为空就初始化一个
@@ -232,10 +246,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     gMap = gNewMap;
                 }
             }
-            // 通过服务ID获取注册的服务
+            // 通过服务ID获取注册的服务实例
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
-            // 如果注册的服务已经有租约信息,说明是再次注册
+            // 如果注册的服务已经有租约信息,说明是重复注册，更加注册实例和当前已存在实例中的lastDirtyTimestamp
             if (existingLease != null && (existingLease.getHolder() != null)) {
 
                 Long existingLastDirtyTimestamp = existingLease.getHolder().getLastDirtyTimestamp();
@@ -252,7 +266,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
             } else {
                 // The lease does not exist and hence it is a new registration
-                // 租赁不存在，需要修改自我保护相关的两个值
+                // 新服务注册，修改自我保护相关的两个阈值
                 synchronized (lock) {
                     if (this.expectedNumberOfRenewsPerMin > 0) {
                         // Since the client wants to cancel it, reduce the threshold
@@ -271,23 +285,28 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             if (existingLease != null) {
                 lease.setServiceUpTimestamp(existingLease.getServiceUpTimestamp());
             }
-            // 记录到gMap
             gMap.put(registrant.getId(), lease);
-            // 将注册服务保存到最近注册的队列中
+            // 将注册服务保存到最近注册队列中
             synchronized (recentRegisteredQueue) {
                 recentRegisteredQueue.add(new Pair<Long, String>(
                         System.currentTimeMillis(),
                         registrant.getAppName() + "(" + registrant.getId() + ")"));
             }
             // This is where the initial state transfer of overridden status happens
+            // registrant.getOverriddenStatus()默认为UNKNOWN
+            // 参考com.netflix.appinfo.providers.EurekaConfigBasedInstanceInfoProvider.get
+
+            // 注册的服务的OverriddenStatus不为UNKNOWN
             if (!InstanceStatus.UNKNOWN.equals(registrant.getOverriddenStatus())) {
                 logger.debug("Found overridden status {} for instance {}. Checking to see if needs to be add to the "
                                 + "overrides", registrant.getOverriddenStatus(), registrant.getId());
+                // 不包含在overriddenInstanceStatusMap中则添加,如果已经包含则不处理
                 if (!overriddenInstanceStatusMap.containsKey(registrant.getId())) {
                     logger.info("Not found overridden id {} and hence adding it", registrant.getId());
                     overriddenInstanceStatusMap.put(registrant.getId(), registrant.getOverriddenStatus());
                 }
             }
+            // 获取注册服务的OverriddenStatus，不为null覆盖注册服务中的OverriddenStatus
             InstanceStatus overriddenStatusFromMap = overriddenInstanceStatusMap.get(registrant.getId());
             if (overriddenStatusFromMap != null) {
                 logger.info("Storing overridden status {} from map", overriddenStatusFromMap);
@@ -295,11 +314,12 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             }
 
             // Set the status based on the overridden status rules
+            // 根据覆盖状态规则设置注册服务的status,
             InstanceStatus overriddenInstanceStatus = getOverriddenInstanceStatus(registrant, existingLease, isReplication);
             registrant.setStatusWithoutDirty(overriddenInstanceStatus);
 
             // If the lease is registered with UP status, set lease service up timestamp
-            // 如果注册服务状态为UP,那么判断serviceUpTimestamp是否为0,如果是则设置为当前时间
+            // 如果注册服务状态为UP,那么判断serviceUpTimestamp是否为0,如果是则更新为当前时间
             if (InstanceStatus.UP.equals(registrant.getStatus())) {
                 lease.serviceUp();
             }
@@ -1312,7 +1332,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     }
 
     /* visible for testing */ class EvictionTask extends TimerTask {
-
+        /**
+         * 上次运行的时间戳
+         */
         private final AtomicLong lastExecutionNanosRef = new AtomicLong(0l);
 
         @Override

@@ -114,9 +114,18 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         }
     };
 
+    /**
+     * 每分钟统计一次
+     * 初始化参考{@link PeerAwareInstanceRegistryImpl#PeerAwareInstanceRegistryImpl}
+     * 修改方法参考{@link PeerAwareInstanceRegistryImpl#replicateToPeers}
+     */
     private final MeasuredRate numberOfReplicationsLastMin;
 
     protected final EurekaClient eurekaClient;
+    /**
+     * 集群中eurekaServer服务注册列表
+     * 初始化参考{@link PeerAwareInstanceRegistryImpl#init}
+     */
     protected volatile PeerEurekaNodes peerEurekaNodes;
 
     private final InstanceStatusOverrideRule instanceStatusOverrideRule;
@@ -235,6 +244,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 for (InstanceInfo instance : app.getInstances()) {
                     try {
                         if (isRegisterable(instance)) {
+                            // 注册到本地服务实例列表中
                             register(instance, instance.getLeaseInfo().getDurationInSecs(), true);
                             count++;
                         }
@@ -420,19 +430,19 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      *            the {@link InstanceInfo} to be registered and replicated.
      * @param isReplication
      *            true if this is a replication event from other replica nodes,
-     *            false otherwise.
+     *            false otherwise. 是否来自其他服务发送过来的，如果为true那么当前server不需要继续在发送下去
      */
     @Override
     public void register(final InstanceInfo info, final boolean isReplication) {
         // 默认的租约时间90s
         int leaseDuration = Lease.DEFAULT_DURATION_IN_SECS;
-        // 如果服务有自己的租约信息并且配置了租约时间
         /**
-         * 正好springcloud配置如下
+         * 整合springcloud配置如下
          * eureka:
          *   instance:
          *     lease-expiration-duration-in-seconds: 100
          */
+        // 如果服务有自己的租约信息并且配置了租约时间
         if (info.getLeaseInfo() != null && info.getLeaseInfo().getDurationInSecs() > 0) {
             leaseDuration = info.getLeaseInfo().getDurationInSecs();
         }
@@ -574,7 +584,6 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                  *   server:
                  *     renewal-percent-threshold: 0.85
                  *     enable-self-preservation: true
-                 * 这里写的有bug
                  */
                 if ((count * 2) > (serverConfig.getRenewalPercentThreshold() * numberOfRenewsPerMinThreshold)
                         || (!this.isSelfPreservationModeEnabled())) {
@@ -672,9 +681,10 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             if (peerEurekaNodes == Collections.EMPTY_LIST || isReplication) {
                 return;
             }
-
+            // 遍历集群中的Eureka server将注册的服务info发送给其他服务
             for (final PeerEurekaNode node : peerEurekaNodes.getPeerEurekaNodes()) {
                 // If the url represents this host, do not replicate to yourself.
+                // 不发送给自己
                 if (peerEurekaNodes.isThisMyUrl(node.getServiceUrl())) {
                     continue;
                 }
