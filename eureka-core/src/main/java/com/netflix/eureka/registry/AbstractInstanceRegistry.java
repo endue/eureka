@@ -80,13 +80,12 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      * 存储注册的服务
      * 外层map的key是appname,内层map的key是instanceId
      */
-    private final ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>> registry
-            = new ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>();
+    private final ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>> registry = new ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>();
     protected Map<String, RemoteRegionRegistry> regionNameVSRemoteRegistry = new HashMap<String, RemoteRegionRegistry>();
     /**
      * 存储覆盖状态，大小500，有效期1小时
      * key是instanceId
-     * 作用参考{@link https://blog.csdn.net/ai_xiangjuan/article/details/80344491}
+     * 作用参考https://blog.csdn.net/ai_xiangjuan/article/details/80344491
      */
     protected final ConcurrentMap<String, InstanceStatus> overriddenInstanceStatusMap = CacheBuilder
             .newBuilder().initialCapacity(500)
@@ -95,22 +94,26 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
     // CircularQueues here for debugging/statistics purposes only
     /**
-     * 记录当前最近注册的服务
+     * 记录当前最近注册、取消的服务
      * 参考{@link com.netflix.eureka.registry.AbstractInstanceRegistry#register}
+     * {@link }
      * key是当前时间戳System.currentTimeMillis()
      * value是服务registrant.getAppName() + "(" + registrant.getId() + ")"
      */
     private final CircularQueue<Pair<Long, String>> recentRegisteredQueue;
     /**
      * 记录当前最后取消的服务实例
-     * 参考{@link AbstractInstanceRegistry#internalCancel}
+     * 参考{@link AbstractInstanceRegistry#cancel}
      * key是当前时间戳System.currentTimeMillis()
      * value是服务registrant.getAppName() + "(" + registrant.getId() + ")"
      */
     private final CircularQueue<Pair<Long, String>> recentCanceledQueue;
     /**
-     * 记录最近改变的服务
+     * 记录最近注册、取消的服务,默认根据lastUpdateTime保留180s
      * 参考{@link com.netflix.eureka.registry.AbstractInstanceRegistry#register}
+     * {@link AbstractInstanceRegistry#cancel}
+     * {@link AbstractInstanceRegistry#statusUpdate}
+     * {@link AbstractInstanceRegistry#deleteStatusOverride}
      */
     private ConcurrentLinkedQueue<RecentlyChangedItem> recentlyChangedQueue = new ConcurrentLinkedQueue<RecentlyChangedItem>();
 
@@ -350,6 +353,8 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      * @param isReplication true if this is a replication event from other nodes, false
      *                      otherwise.
      * @return true if the instance was removed from the {@link AbstractInstanceRegistry} successfully, false otherwise.
+     *
+     * 服务实例取消注册
      */
     @Override
     public boolean cancel(String appName, String id, boolean isReplication) {
@@ -398,7 +403,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     vip = instanceInfo.getVIPAddress();
                     svip = instanceInfo.getSecureVipAddress();
                 }
-                // 清空缓存
+                // 清空该服务对应的缓存
                 invalidateCache(appName, vip, svip);
                 logger.info("Cancelled instance {}/{} (replication={})", appName, id, isReplication);
                 return true;
@@ -416,7 +421,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      */
     public boolean renew(String appName, String id, boolean isReplication) {
         RENEW.increment(isReplication);
-        // 获取服务名下的所有服务实例列表
+        // 获取服务名下的所有服务实例列表,然后根据ID获取对应的服务实例信息
         Map<String, Lease<InstanceInfo>> gMap = registry.get(appName);
         Lease<InstanceInfo> leaseToRenew = null;
         if (gMap != null) {
@@ -453,6 +458,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
             }
             renewsLastMin.increment();
+            // 更新服务实例在服务端的lastUpdateTimestamp
             leaseToRenew.renew();
             return true;
         }
