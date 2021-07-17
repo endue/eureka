@@ -1368,7 +1368,7 @@ public class DiscoveryClient implements EurekaClient {
              */
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
-            // 启动刷新本地缓存localRegionApps的任务,每30s执行一次,
+            // 启动刷新本地缓存localRegionApps的任务,延迟30s执行，之后每30s执行一次,
             // 当出现TimeoutException异常时重新计算延迟时间registry-fetch-interval-seconds * 2，最大registry-fetch-interval-seconds * cache-refresh-executor-exponential-back-off-bound
             scheduler.schedule(
                     new TimedSupervisorTask(
@@ -1401,7 +1401,7 @@ public class DiscoveryClient implements EurekaClient {
             logger.info("Starting heartbeat executor: " + "renew interval is: " + renewalIntervalInSecs);
 
             // Heartbeat timer
-            // 启动发送心跳的任务,每30s执行一次
+            // 启动发送心跳的任务,延迟30s执行，之后每30s执行一次
             scheduler.schedule(
                     new TimedSupervisorTask(
                             "heartbeat",
@@ -1436,6 +1436,7 @@ public class DiscoveryClient implements EurekaClient {
                     } else {
                         logger.info("Saw local status change event {}", statusChangeEvent);
                     }
+                    // 状态变化时notify()方法会被调用，然后上报最新状态到Eureka Server
                     instanceInfoReplicator.onDemandUpdate();
                 }
             };
@@ -1444,7 +1445,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
             /**
-             * 里面首先调用setIsDirty方法,然后启动一个40s执行一次的定时任务
+             * 里面首先调用setIsDirty方法,然后启动一个延迟40s，之后每40s执行一次的定时任务
              * 判断自身状态，如果发生变更则注册到eurekaServer
              * eureka:
              *   client:
