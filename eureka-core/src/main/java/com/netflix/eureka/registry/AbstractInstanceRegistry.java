@@ -252,7 +252,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             // 通过服务ID获取注册的服务实例
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
-            // 如果注册的服务已经有租约信息,说明是重复注册，更加注册实例和当前已存在实例中的lastDirtyTimestamp
+            // 如果注册的服务已经有租约信息,说明是重复注册，根据服务实例的lastDirtyTimestamp获取最新的服务实例(一种是服务端的另一种就是注册的服务实例)
             if (existingLease != null && (existingLease.getHolder() != null)) {
 
                 Long existingLastDirtyTimestamp = existingLease.getHolder().getLastDirtyTimestamp();

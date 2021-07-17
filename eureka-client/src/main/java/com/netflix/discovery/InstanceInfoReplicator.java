@@ -104,9 +104,10 @@ class InstanceInfoReplicator implements Runnable {
 
     public void run() {
         try {
-            // 判断服务实例是否发生变更，如果是则注册到eurekaServer
+            // 更新服务实例信息，只有发送变化才会更新然后调用instanceInfo.setIsDirty()
+            // 修改isInstanceInfoDirty为true、lastDirtyTimestamp为当前时间
             discoveryClient.refreshInstanceInfo();
-
+            // 服务实例isInstanceInfoDirty为true才会返回lastDirtyTimestamp否则返回null
             Long dirtyTimestamp = instanceInfo.isDirtyWithTime();
             if (dirtyTimestamp != null) {
                 discoveryClient.register();
