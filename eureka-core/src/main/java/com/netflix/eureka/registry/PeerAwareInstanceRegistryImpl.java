@@ -468,7 +468,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
 
     /*
      * (non-Javadoc)
-     *
+     * 模拟调用http://localhost:8762/eureka/apps/ServiceA/localhost:ServiceA:8888/status?value=OUT_OF_SERVICE&lastDirtyTimestamp=1626509943000
      * @see com.netflix.eureka.registry.InstanceRegistry#statusUpdate(java.lang.String,
      * java.lang.String, com.netflix.appinfo.InstanceInfo.InstanceStatus,
      * java.lang.String, boolean)

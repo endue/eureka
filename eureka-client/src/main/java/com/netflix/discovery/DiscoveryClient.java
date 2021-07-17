@@ -925,6 +925,7 @@ public class DiscoveryClient implements EurekaClient {
         try {
             httpResponse = eurekaTransport.registrationClient.sendHeartBeat(instanceInfo.getAppName(), instanceInfo.getId(), instanceInfo, null);
             logger.debug("{} - Heartbeat status: {}", PREFIX + appPathIdentifier, httpResponse.getStatusCode());
+            // 返回404服务说明服务未找到，调用注册
             if (httpResponse.getStatusCode() == 404) {
                 REREGISTER_COUNTER.increment();
                 logger.info("{} - Re-registering apps/{}", PREFIX + appPathIdentifier, instanceInfo.getAppName());
